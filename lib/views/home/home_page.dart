@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../widgets/custom_navbar.dart'; // เรียกใช้ Navbar ที่แยกออกมา
+import 'draw_result_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -87,7 +88,7 @@ class _HomePageState extends State<HomePage> {
                   ),
                   if (isSelected)
                     Container(
-                      margin: const EdgeInsets.only(top: 4), // แก้ไขจุดนี้แล้ว
+                      margin: const EdgeInsets.only(top: 4), 
                       height: 2,
                       width: 40,
                       color: Colors.white,
@@ -102,9 +103,28 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildDeckCard(int index) {
+    final String currentDeckName = _decks[index]; // ดึงชื่อ Deck ปัจจุบัน
+
     return Center(
       child: GestureDetector(
-        onTap: () => print("Draw from Deck ${index + 1}"),
+        onTap: (){
+          Navigator.push(
+          context,
+          PageRouteBuilder(
+            transitionDuration: const Duration(milliseconds: 800), // ปรับเวลาให้ช้าลงเพื่อความขลัง
+            pageBuilder: (context, animation, secondaryAnimation) => DrawResultPage(deckName: currentDeckName),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              // ใช้ FadeTransition ผสมกับ Hero เพื่อความสวยงาม
+              return FadeTransition(
+                opacity: animation,
+                child: child,
+              );
+            },
+          ),
+        );
+        },
+        child: Hero(
+        tag: 'deck_card_$currentDeckName',
         child: Container(
           width: MediaQuery.of(context).size.width * 0.75,
           height: MediaQuery.of(context).size.height * 0.55,
@@ -132,6 +152,7 @@ class _HomePageState extends State<HomePage> {
             ],
           ),
         ),
+      ),
       ),
     );
   }
