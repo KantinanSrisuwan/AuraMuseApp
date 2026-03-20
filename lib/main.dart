@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'views/login/login_page.dart';
+import 'core/routes/app_routes.dart';
 
 void main() {
   runApp(const AuraMuseApp());
@@ -13,11 +13,11 @@ class AuraMuseApp extends StatelessWidget {
     return MaterialApp(
       title: 'AuraMuse',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        fontFamily: 'Kanit', // หรือฟอนต์ที่คุณต้องการ
-        primarySwatch: Colors.blue,
-      ),
-      home: const LoginPage(), // กำหนดหน้าแรกเป็น LoginPage
+      theme: ThemeData(fontFamily: 'Kanit'),
+      
+      // ใช้ระบบ Named Routes แทนการระบุ home: ตรงๆ
+      initialRoute: AppRoutes.login, 
+      routes: AppRoutes.getRoutes(), 
     );
   }
 }

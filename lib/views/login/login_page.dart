@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/routes/app_routes.dart';
 import '../widgets/custom_input_field.dart';
-import 'register_page.dart';
 
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
@@ -57,7 +57,7 @@ class LoginPage extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: TextButton(
               onPressed: () {
-              Navigator.push(context,MaterialPageRoute(builder: (context) => const RegisterPage()),);
+                Navigator.pushNamed(context, AppRoutes.register);
               },
               child: const Text(
                 "ยังไม่มีบัญชีใช่ไหม?",
@@ -75,7 +75,7 @@ class LoginPage extends StatelessWidget {
               height: 55,
               child: ElevatedButton(
                 onPressed: () {
-                  // Navigation จะถูกใส่ที่นี่ในอนาคต
+                  Navigator.pushNamed(context, AppRoutes.home); //ค่อยใส่เงือนไขการ Login
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.actionGreen,
