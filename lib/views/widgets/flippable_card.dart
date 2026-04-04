@@ -40,7 +40,11 @@ class _FlippableCardState extends State<FlippableCard> with SingleTickerProvider
   }
 
   void _toggleCard() {
-    if (_isFront) _controller.forward(); else _controller.reverse();
+    if (_isFront) {
+      _controller.forward();
+    } else {
+      _controller.reverse();
+    }
     setState(() => _isFront = !_isFront);
   }
 
