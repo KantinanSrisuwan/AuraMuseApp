@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../widgets/custom_navbar.dart';
+import '/views/search/deck_detail_page.dart';
+import 'package:project_flutter/core/routes/app_routes.dart';
+import 'deck_view_wrapper.dart';
+
+
 
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
@@ -114,9 +119,27 @@ class _SearchPageState extends State<SearchPage> {
   Widget _buildDeckItem(Map<String, String> deck) {
     return GestureDetector(
       onTap: () {
-        print("ไปหน้า Detail ของ ${deck['name']}");
-        // Navigator.pushNamed(context, '/deck_detail', arguments: deck);
+  Navigator.push(
+    context,
+    PageRouteBuilder(
+      pageBuilder: (context, animation, secondaryAnimation) => const DeckViewWrapper(),
+      settings: RouteSettings(arguments: deck), // ส่งข้อมูล deck ไปเหมือนเดิม
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        // ใช้ FadeTransition (ค่อยๆ จางปรากฏ) + ScaleTransition (ค่อยๆ ขยาย)
+        return FadeTransition(
+          opacity: animation,
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.9, end: 1.0).animate(
+              CurvedAnimation(parent: animation, curve: Curves.easeOutBack),
+            ),
+            child: child,
+          ),
+        );
       },
+      transitionDuration: const Duration(milliseconds: 500), // ความเร็วในการเปิดหน้า
+    ),
+  );
+},
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(8),

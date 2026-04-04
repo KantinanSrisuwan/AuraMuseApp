@@ -6,19 +6,26 @@ import 'package:project_flutter/views/main_wrapper.dart';
 import 'package:project_flutter/views/login/login_page.dart';
 import 'package:project_flutter/views/login/register_page.dart';
 import 'package:project_flutter/views/home/draw_result_page.dart';
+import 'package:project_flutter/views/search/deck_view_wrapper.dart';
+
+
+
 
 class AppRoutes {
   static const String login = '/';
   static const String register = '/register';
   static const String mainWrapper = '/main'; // หน้าหลักหลัง Login
   static const String drawResult = '/draw_result';
+  static const String deckDetail = '/deck_detail';
+  static const String deckList = '/deck_list';
 
   static Map<String, WidgetBuilder> getRoutes() {
     return {
       login: (context) => const LoginPage(),
       register: (context) => const RegisterPage(),
       mainWrapper: (context) => const MainWrapper(),
-      drawResult: (context) => const DrawResultPage(deckName: ''), 
+      drawResult: (context) => const DrawResultPage(deckName: ''),
+      deckDetail: (context) => const DeckViewWrapper(),
     };
   }
 }
