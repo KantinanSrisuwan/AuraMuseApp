@@ -75,7 +75,7 @@ class LoginPage extends StatelessWidget {
               height: 55,
               child: ElevatedButton(
                 onPressed: () {
-                  Navigator.pushNamed(context, AppRoutes.home); //ค่อยใส่เงือนไขการ Login
+                  Navigator.pushNamed(context, AppRoutes.mainWrapper); //ค่อยใส่เงือนไขการ Login
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.actionGreen,
