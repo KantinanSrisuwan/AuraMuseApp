@@ -16,7 +16,7 @@ class _DrawResultPageState extends State<DrawResultPage> {
   List<Color> _extractedPalette = [];
   
   // 2. URL รูปหน้าไพ่ (ในอนาคตจะเปลี่ยนเป็นตัวแปรที่รับมาจาก Database)
-  final String _imageUrl = 'https://picsum.photos/seed/ocean/600/1000';
+  final String _imageUrl = 'https://picsum.photos/seed/tree/600/1000';
 
   @override
   void initState() {
