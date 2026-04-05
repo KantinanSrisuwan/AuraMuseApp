@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/admin_drawer.dart';
+import '../../core/routes/admin_routes.dart';
 
 class AdminReport extends StatefulWidget {
   const AdminReport({super.key});
@@ -74,7 +75,17 @@ class _AdminReportState extends State<AdminReport> {
     return InkWell(
       onTap: () {
         // เมื่อกดจะไปที่หน้าละเอียด (เดี๋ยวเราสร้าง Route รองรับในอนาคต)
-        print("ไปที่หน้าละเอียดของเด็ค $deckId");
+        Navigator.pushNamed(
+          context,
+          AdminRoutes.adminReportDetail,
+          arguments: {
+            'deckId': deckId,
+            'deckName': deckName,
+            'cardCount': cardCount,
+            'description': description,
+            'creator': 'TOK TIK', // สมมติข้อมูลเพิ่ม
+          },
+        );
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 15),
