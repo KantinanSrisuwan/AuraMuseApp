@@ -4,11 +4,15 @@ import 'package:flutter/material.dart';
 import '../../views/admin/admin_dashboard.dart';
 import '../../views/admin/admin_report.dart';
 import '../../views/admin/admin_deck.dart';
+import '../../views/admin/admin_user.dart';
+import '../../views/admin/admin_verified.dart';
 
 class AdminRoutes {
   static const String adminDashboard = '/admin/dashboard';
   static const String adminReport = '/admin/report';
   static const String adminDeck = '/admin/deck';
+  static const String adminUser = '/admin/user';
+  static const String adminVerified = '/admin/verified';
   // เพิ่ม path อื่นๆ ของ admin ที่นี่ เช่น /admin/settings
 
   static Map<String, WidgetBuilder> getRoutes() {
@@ -16,6 +20,8 @@ class AdminRoutes {
       adminDashboard: (context) => const AdminDashboard(),
       adminReport: (context) => const AdminReport(),
       adminDeck: (context) => const AdminDeck(),
+      adminUser: (context) => const AdminUser(),
+      adminVerified: (context) => const AdminVerified(),
     };
   }
 }

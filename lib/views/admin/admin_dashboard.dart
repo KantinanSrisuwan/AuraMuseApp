@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../core/routes/app_routes.dart';
-import '../../core/routes/admin_routes.dart';
 import '../widgets/admin_drawer.dart';
 
 class AdminDashboard extends StatefulWidget {

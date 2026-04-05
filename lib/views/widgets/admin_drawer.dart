@@ -29,8 +29,8 @@ class AdminDrawer extends StatelessWidget {
           _menuItem(context, Icons.home, "Home", AdminRoutes.adminDashboard),
           _menuItem(context, Icons.description, "Report", AdminRoutes.adminReport),
           _menuItem(context, Icons.style, "Deck", AdminRoutes.adminDeck),
-          _menuItem(context, Icons.person, "User", ""),
-          _menuItem(context, Icons.check_circle_outline, "Verified", ""),
+          _menuItem(context, Icons.person, "User", AdminRoutes.adminUser),
+          _menuItem(context, Icons.check_circle_outline, "Verified", AdminRoutes.adminVerified),
           
           const Spacer(), // ดัน Logout ไปล่างสุด
           
