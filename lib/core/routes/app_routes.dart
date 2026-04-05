@@ -7,6 +7,7 @@ import 'package:project_flutter/views/login/login_page.dart';
 import 'package:project_flutter/views/login/register_page.dart';
 import 'package:project_flutter/views/home/draw_result_page.dart';
 import 'package:project_flutter/views/search/deck_view_wrapper.dart';
+import 'package:project_flutter/views/my_deck/my_deck_page.dart';
 
 
 
@@ -18,6 +19,7 @@ class AppRoutes {
   static const String drawResult = '/draw_result';
   static const String deckDetail = '/deck_detail';
   static const String deckList = '/deck_list';
+  static const String myDeck = '/my_deck';
 
   static Map<String, WidgetBuilder> getRoutes() {
     return {
@@ -26,6 +28,7 @@ class AppRoutes {
       mainWrapper: (context) => const MainWrapper(),
       drawResult: (context) => const DrawResultPage(deckName: ''),
       deckDetail: (context) => const DeckViewWrapper(),
+      myDeck: (context) => const MyDeckPage(),
     };
   }
 }
