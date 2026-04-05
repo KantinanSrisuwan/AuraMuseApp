@@ -51,15 +51,6 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
       ),
-      bottomNavigationBar: CustomNavbar(
-        selectedIndex: _selectedNavIndex,
-        onItemSelected: (index) {
-          setState(() => _selectedNavIndex = index);
-          // จัดการ Navigation ระหว่างหน้าได้ที่นี่ในอนาคต
-          if (index == 4) { } 
-          // Navigator.pushNamed(context, AppRoutes.profile);
-        },
-      ),
     );
   }
 

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/routes/app_routes.dart';
 import '../widgets/custom_input_field.dart';
+import '../../core/routes/app_routes.dart';
+import '../../core/routes/admin_routes.dart';
 
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
@@ -31,11 +33,11 @@ class LoginPage extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Image.network(
-                    //   'https://via.placeholder.com/80', // ใส่ URL รูปโลโก้ของคุณที่นี่
-                    //   color: Colors.white,
-                    //   errorBuilder: (context, error, stackTrace) => const Icon(Icons.auto_awesome, size: 60, color: Colors.white),
-                    // ),
+                    Image.network(
+                      'https://via.placeholder.com/80', // ใส่ URL รูปโลโก้ของคุณที่นี่
+                      color: Colors.white,
+                      errorBuilder: (context, error, stackTrace) => const Icon(Icons.auto_awesome, size: 60, color: Colors.white),
+                    ),
                     const Text("AURAMUSE", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
                   ],
                 ),
@@ -75,7 +77,7 @@ class LoginPage extends StatelessWidget {
               height: 55,
               child: ElevatedButton(
                 onPressed: () {
-                  Navigator.pushReplacementNamed(context, AppRoutes.home); //ค่อยใส่เงือนไขการ Login
+                  Navigator.pushNamed(context, AdminRoutes.adminDashboard); //ค่อยใส่เงือนไขการ Login
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.actionGreen,

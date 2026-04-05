@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'core/routes/app_routes.dart';
+import 'core/routes/admin_routes.dart';
 
 void main() {
   runApp(const AuraMuseApp());
@@ -17,7 +18,10 @@ class AuraMuseApp extends StatelessWidget {
       
       // ใช้ระบบ Named Routes แทนการระบุ home: ตรงๆ
       initialRoute: AppRoutes.login, 
-      routes: AppRoutes.getRoutes(), 
+      routes: {
+        ... AppRoutes.getRoutes(), 
+        ... AdminRoutes.getRoutes(),
+      }
     );
   }
 }
