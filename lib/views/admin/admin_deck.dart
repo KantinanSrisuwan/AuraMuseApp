@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/admin_drawer.dart';
+import '../../core/routes/admin_routes.dart';
 
 class AdminDeck extends StatefulWidget {
   const AdminDeck({super.key});
@@ -74,11 +75,17 @@ class _AdminDeckState extends State<AdminDeck> {
     return InkWell( // 1. ครอบด้วย InkWell เพื่อให้กดได้และมีเอฟเฟกต์ Ripple
       onTap: () {
         // 2. สั่งนำทางไปหน้าละเอียด (ตัวอย่าง: AdminRoutes.adminDeckDetail)
-        // ตอนนี้ผมใส่ Print ไว้ให้เช็คก่อนนะครับว่ากดติดไหม
-        print("กำลังไปที่หน้าละเอียดของสำรับหมายเลข: $deckId");
-        
-        // เมื่อคุณสร้างหน้าละเอียดเสร็จแล้ว ให้ใช้คำสั่งนี้:
-        // Navigator.pushNamed(context, AdminRoutes.adminDeckDetail, arguments: deckId);
+        // ตอนนี้ผมใส่ Print ไว้ให้เช็คก่อนนะครับว่ากดติดไห
+        Navigator.pushNamed(
+          context,
+          AdminRoutes.adminDeckDetail,
+          arguments: {
+            'deckId': deckId,
+            'deckName': deckName,
+            'cardCount': cardCount,
+            // ... ข้อมูลอื่นๆ
+          },
+        );
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 15),

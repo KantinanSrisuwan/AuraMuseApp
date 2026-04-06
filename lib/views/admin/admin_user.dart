@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/admin_drawer.dart';
+import '../../core/routes/admin_routes.dart';
 
 class AdminUser extends StatefulWidget {
   const AdminUser({super.key});
@@ -71,7 +72,15 @@ class _AdminUserState extends State<AdminUser> {
   }) {
     return InkWell(
       onTap: () {
-        print("ไปที่หน้าดูรายละเอียดของ User ID: $userId");
+        Navigator.pushNamed(
+          context,
+          AdminRoutes.adminUserDetail, // ตรวจสอบชื่อ Route ใน admin_routes.dart นะครับ
+          arguments: {
+            'userId': userId,
+            'username': username,
+            'dateCreated': dateCreated,
+          },
+        );
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 15),

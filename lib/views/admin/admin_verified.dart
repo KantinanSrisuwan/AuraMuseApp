@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/admin_drawer.dart';
+import '../../core/routes/admin_routes.dart';
 
 class AdminVerified extends StatefulWidget {
   const AdminVerified({super.key});
@@ -71,7 +72,16 @@ class _AdminVerifiedState extends State<AdminVerified> {
   }) {
     return InkWell(
       onTap: () {
-        print("เข้าสู่โหมดตรวจสอบสำรับหมายเลข: $deckId");
+        Navigator.pushNamed(
+          context,
+          AdminRoutes.adminVerifyDetail, // ตรวจสอบชื่อ Route ปลายทาง
+          arguments: {
+            'deckId': deckId,
+            'cardCount': cardCount,
+            'deckName': deckName,
+            'dateCreated': dateCreated,
+          },
+        );
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 15),
