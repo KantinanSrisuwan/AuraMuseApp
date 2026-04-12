@@ -30,9 +30,9 @@ class _AdminEditUserPageState extends State<AdminEditUserPage> {
           _field("Username", uCont), _field("Password", pCont, hide: true), _field("Email", eCont),
           const Spacer(),
           Row(children: [
-            Expanded(child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.green), onPressed: () => Navigator.pop(context, {'username': uCont.text, 'email': eCont.text}), child: const Text("ยืนยัน"))),
+            Expanded(child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.green), onPressed: () => Navigator.pop(context, {'username': uCont.text, 'email': eCont.text}), child: const Text("ยืนยัน", style: TextStyle(color: Colors.white)))),
             const SizedBox(width: 20),
-            Expanded(child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent), onPressed: () { uCont.clear(); pCont.clear(); eCont.clear(); }, child: const Text("ล้าง"))),
+            Expanded(child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent), onPressed: () { uCont.clear(); pCont.clear(); eCont.clear(); }, child: const Text("ล้าง", style: TextStyle(color: Colors.white)))),
           ])
         ]),
       ),

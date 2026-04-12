@@ -1,74 +1,29 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
 
+// ==========================================================
+// 1. หน้าหลัก (Controller)
+// ==========================================================
 class AdminVerifyDeckPage extends StatefulWidget {
   const AdminVerifyDeckPage({super.key});
-
-  @override
-  State<AdminVerifyDeckPage> createState() => _AdminVerifyDeckPageState();
+  @override State<AdminVerifyDeckPage> createState() => _AdminVerifyDeckPageState();
 }
 
 class _AdminVerifyDeckPageState extends State<AdminVerifyDeckPage> {
   final PageController _pageController = PageController();
 
-  // ฟังก์ชันแสดง Pop-up เมื่อกด อนุญาต/ไม่อนุญาต
-  void _handleVerify(bool isAllow) {
-    final TextEditingController reasonController = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A2E),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(15),
-          side: BorderSide(color: isAllow ? Colors.green : Colors.orangeAccent),
-        ),
-        title: Text(
-          isAllow ? "ยืนยันการอนุญาต" : "เหตุผลที่ไม่ได้รับอนุญาต", 
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        content: isAllow 
-          ? const Text("เมื่อกดยืนยัน สำรับนี้จะถูกเผยแพร่สู่สาธารณะทันที", style: TextStyle(color: Colors.white70))
-          : Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text("กรุณาระบุเหตุผลเพื่อให้เจ้าของสำรับทราบ:", style: TextStyle(color: Colors.white70, fontSize: 14)),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: reasonController,
-                  maxLines: 3,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: InputDecoration(
-                    hintText: "เช่น เนื้อหาไม่เหมาะสม...",
-                    hintStyle: const TextStyle(color: Colors.white24),
-                    fillColor: Colors.white.withOpacity(0.05),
-                    filled: true,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                ),
-              ],
-            ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context), 
-            child: const Text("ยกเลิก", style: TextStyle(color: Colors.white30)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: isAllow ? Colors.green : Colors.redAccent), 
-            onPressed: () {
-              // กลับไปหน้าบัญชีทั้งหมด (Pop 2 ครั้ง: ปิด Dialog และ ปิดหน้า Detail)
-              Navigator.of(context)..pop()..pop(); 
-            }, 
-            child: const Text("ยืนยัน", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          )
-        ],
-      ),
+  void _jumpToPage(int page) {
+    _pageController.animateToPage(
+      page, 
+      duration: const Duration(milliseconds: 600), 
+      curve: Curves.easeInOutQuart
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final Map<String, dynamic> args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
-    int count = int.tryParse(args['cardCount'].toString()) ?? 0;
+    int count = int.parse(args['cardCount'].toString());
 
     return Scaffold(
       backgroundColor: const Color(0xFF13112B),
@@ -77,152 +32,247 @@ class _AdminVerifyDeckPageState extends State<AdminVerifyDeckPage> {
           PageView(
             controller: _pageController,
             scrollDirection: Axis.vertical,
+            physics: const BouncingScrollPhysics(),
             children: [
-              _buildVerifyInfo(args),
-              _buildVerifyGrid(args, count),
+              VerifyInfoPart(args: args, onNext: () => _jumpToPage(1)),
+              VerifyGridPart(args: args, count: count, onBack: () => _jumpToPage(0)),
             ],
           ),
-          // ปุ่มกดด้านล่าง
-          Positioned(
-            bottom: 30, left: 20, right: 20, 
-            child: Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green, 
-                      padding: const EdgeInsets.symmetric(vertical: 18),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ), 
-                    onPressed: () => _handleVerify(true), 
-                    child: const Text("อนุญาต", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  ),
-                ),
-                const SizedBox(width: 15),
-                Expanded(
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.redAccent, 
-                      padding: const EdgeInsets.symmetric(vertical: 18),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ), 
-                    onPressed: () => _handleVerify(false), 
-                    child: const Text("ไม่อนุญาต", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          _buildBottomButtons(context),
         ],
       ),
     );
   }
 
-  Widget _buildVerifyInfo(dynamic args) => SingleChildScrollView(
-    padding: const EdgeInsets.all(20), 
-    child: Column(
-      children: [
-        const SizedBox(height: 40),
-        Align(
-          alignment: Alignment.centerLeft, 
-          child: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white, size: 30), 
-            onPressed: () => Navigator.pop(context),
-          ),
-        ),
-        Container(
-          width: double.infinity, 
-          padding: const EdgeInsets.all(15), 
-          color: const Color(0xFF6A4CFF), 
-          child: Text(
-            args['deckName'] ?? "สำรับรอตรวจสอบ", 
-            textAlign: TextAlign.center, 
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
-          ),
-        ),
-        const SizedBox(height: 30),
-        Row(
-          children: [
-            Container(
-              width: 150, height: 230, 
-              decoration: BoxDecoration(
-                color: Colors.white10, 
-                borderRadius: BorderRadius.circular(15),
-                border: Border.all(color: Colors.white12),
-              ), 
-              child: const Icon(Icons.style, size: 80, color: Colors.white24),
-            ),
-            const SizedBox(width: 20),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start, 
-                children: [
-                  Text("ID: ${args['deckId']}", style: const TextStyle(color: Colors.white70)),
-                  const SizedBox(height: 10),
-                  Text("การ์ด: ${args['cardCount']} ใบ", style: const TextStyle(color: Colors.white70)),
-                  const SizedBox(height: 10),
-                  const Text("สถานะ: รอตรวจสอบ", style: TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.bold)),
-                ],
-              ),
-            )
-          ],
-        ),
-        const SizedBox(height: 50),
-        const Text("สถิติการใช้งาน", style: TextStyle(color: Colors.white24)),
-        const SizedBox(height: 15),
-        Container(
-          height: 140, width: 140, 
-          decoration: BoxDecoration(color: Colors.white.withOpacity(0.03), shape: BoxShape.circle), 
-          child: const Center(child: Text("ไม่มีสถิติ", style: TextStyle(color: Colors.white24))),
-        ),
-        const SizedBox(height: 60),
-        const Text("ปัดขึ้นเพื่อดูไพ่ในสำรับ ↑", style: TextStyle(color: Colors.white12, fontSize: 12)),
-        const SizedBox(height: 120),
-      ],
-    ),
+  Widget _buildBottomButtons(BuildContext context) => Positioned(
+    bottom: 30, left: 20, right: 20,
+    child: Row(children: [
+      Expanded(child: _actionButton("อนุญาต", Colors.green, () => _handleVerify(true))),
+      const SizedBox(width: 15),
+      Expanded(child: _actionButton("ไม่อนุญาต", Colors.redAccent, () => _handleVerify(false))),
+    ]),
   );
 
-  Widget _buildVerifyGrid(dynamic args, int count) => Column(
-    children: [
-      const SizedBox(height: 60),
-      Text("รายการไพ่: ${args['deckName']}", style: const TextStyle(color: Colors.white, fontSize: 18)),
-      const SizedBox(height: 20),
-      Expanded(
-        child: GridView.builder(
-          padding: const EdgeInsets.symmetric(horizontal: 20), 
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3, childAspectRatio: 0.7, crossAxisSpacing: 12, mainAxisSpacing: 12,
-          ), 
-          itemCount: count, 
-          itemBuilder: (c, i) => GestureDetector(
-            onTap: () {
-              // ลบ const ออกจากตรงนี้เพื่อป้องกัน error
-              Navigator.push(context, MaterialPageRoute(builder: (c) => CardFlipView()));
-            },
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.05), 
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.orangeAccent.withOpacity(0.2)),
-              ), 
-              child: const Icon(Icons.style, color: Colors.orangeAccent, size: 35),
-            ),
-          ),
-        ),
-      ),
-      const SizedBox(height: 110),
-    ],
+  Widget _actionButton(String text, Color color, VoidCallback onPressed) => ElevatedButton(
+    style: ElevatedButton.styleFrom(
+      backgroundColor: color, 
+      padding: const EdgeInsets.symmetric(vertical: 18), 
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))
+    ),
+    onPressed: onPressed,
+    child: Text(text, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
   );
+
+  void _handleVerify(bool isAllow) {
+    final TextEditingController reasonController = TextEditingController();
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A2E),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(15), 
+          side: const BorderSide(color: Colors.orangeAccent, width: 2)
+        ),
+        title: Text(
+          isAllow ? "ยืนยันการอนุญาต" : "เหตุผลที่ไม่ได้รับอนุญาต", 
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)
+        ),
+        content: isAllow 
+          ? const Text("เมื่อกดยืนยัน สำรับนี้จะถูกเผยแพร่สู่สาธารณะทันที", style: TextStyle(color: Colors.white70))
+          : Column(
+              mainAxisSize: MainAxisSize.min, 
+              children: [
+                const Text("กรุณาระบุเหตุผลเพื่อให้เจ้าของสำรับทราบ:", style: TextStyle(color: Colors.white70, fontSize: 14)),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: reasonController, 
+                  maxLines: 3, 
+                  style: const TextStyle(color: Colors.white), 
+                  decoration: InputDecoration(
+                    hintText: "เช่น เนื้อหาไม่เหมาะสม...", 
+                    hintStyle: const TextStyle(color: Colors.white24), 
+                    fillColor: Colors.white.withOpacity(0.05), 
+                    filled: true, 
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8))
+                  )
+                ),
+              ]
+            ),
+        actions: [
+          Row(children: [
+            Expanded(child: _actionButton("ยืนยัน", isAllow ? Colors.green : Colors.redAccent, () => Navigator.of(context)..pop()..pop())),
+            const SizedBox(width: 10),
+            Expanded(child: _actionButton("ยกเลิก", const Color(0xFF455A64), () => Navigator.pop(context))),
+          ]),
+        ],
+        actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+      ),
+    );
+  }
 }
 
-// --- หน้าพลิกไพ่ 3D (คลาสที่หายไป) ---
-class CardFlipView extends StatefulWidget {
-  const CardFlipView({super.key});
+// ==========================================================
+// 2. ไฟล์หน้าข้อมูล (VerifyInfoPart)
+// ==========================================================
+class VerifyInfoPart extends StatelessWidget {
+  final dynamic args;
+  final VoidCallback onNext;
+  const VerifyInfoPart({super.key, required this.args, required this.onNext});
 
   @override
-  State<CardFlipView> createState() => _CardFlipViewState();
+  Widget build(BuildContext context) {
+    return NotificationListener<ScrollNotification>(
+      onNotification: (notification) {
+        if (notification is ScrollUpdateNotification && notification.metrics.pixels >= notification.metrics.maxScrollExtent && notification.scrollDelta! > 5) {
+          onNext();
+        }
+        return false;
+      },
+      child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: Column(
+          children: [
+            const SizedBox(height: 50),
+            Align(alignment: Alignment.centerLeft, child: Padding(padding: const EdgeInsets.only(left: 10), child: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white, size: 30), onPressed: () => Navigator.pop(context)))),
+            
+            Container(
+              width: double.infinity, 
+              padding: const EdgeInsets.symmetric(vertical: 18), 
+              margin: const EdgeInsets.symmetric(vertical: 10),
+              color: const Color(0xFF6A4CFF), 
+              child: Text(
+                args['deckName'] ?? "สำรับรอตรวจสอบ", 
+                textAlign: TextAlign.center, 
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22),
+              ),
+            ),
+            
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Container(
+                        width: 150, height: 230, 
+                        decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.white12)), 
+                        child: const Icon(Icons.style, size: 80, color: Colors.white24),
+                      ),
+                      const SizedBox(width: 20),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start, 
+                          children: [
+                            Text("ID: ${args['deckId']}", style: const TextStyle(color: Colors.white70, fontSize: 16)),
+                            const SizedBox(height: 12),
+                            Text("การ์ด: ${args['cardCount']} ใบ", style: const TextStyle(color: Colors.white70, fontSize: 16)),
+                            const SizedBox(height: 12),
+                            const Text("สถานะ : รอตรวจสอบ", style: TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.bold, fontSize: 18)),
+                          ]
+                        ),
+                      )
+                    ],
+                  ),
+                  const SizedBox(height: 50),
+                  const Text("สถิติการใช้งาน", style: TextStyle(color: Colors.white24)),
+                  const SizedBox(height: 20),
+                  Container(
+                    height: 140, width: 140, 
+                    decoration: BoxDecoration(color: Colors.white.withOpacity(0.03), shape: BoxShape.circle), 
+                    child: const Center(child: Text("ไม่มีสถิติ", style: TextStyle(color: Colors.white24))),
+                  ),
+                  const SizedBox(height: 60),
+                  const Text("ไถขึ้นเพื่อดูไพ่ในสำรับ ↑", style: TextStyle(color: Colors.white12, fontSize: 12)),
+                  const SizedBox(height: 250), 
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
+// ==========================================================
+// 3. ไฟล์หน้ารายการไพ่ (VerifyGridPart) - แก้ไขส่วนหัวข้อที่หายไป
+// ==========================================================
+class VerifyGridPart extends StatelessWidget {
+  final dynamic args;
+  final int count;
+  final VoidCallback onBack;
+  const VerifyGridPart({super.key, required this.args, required this.count, required this.onBack});
+
+  @override
+  Widget build(BuildContext context) {
+    return NotificationListener<ScrollNotification>(
+      onNotification: (notification) {
+        if (notification is ScrollUpdateNotification && notification.metrics.pixels <= 0 && notification.scrollDelta! < -5) {
+          onBack();
+        }
+        return false;
+      },
+      child: Column(
+        children: [
+          const SizedBox(height: 60),
+          
+          // ✅ ✅ ✅ คืนค่าหัวข้อ: ชื่อสำรับ (ซ้าย) และ จำนวนใบ (ขวา) ตามรูป
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  args['deckName'] ?? "ชื่อสำรับ", 
+                  style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)
+                ),
+                Text(
+                  "${args['cardCount']} ใบ", 
+                  style: const TextStyle(color: Colors.white70, fontSize: 16)
+                ),
+              ],
+            ),
+          ),
+          
+          // เส้น Divider ใต้หัวข้อ
+          const Divider(color: Colors.white24, indent: 20, endIndent: 20, height: 30),
+          
+          Expanded(
+            child: GridView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 20), 
+              physics: const BouncingScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3, childAspectRatio: 0.7, crossAxisSpacing: 12, mainAxisSpacing: 12
+              ), 
+              itemCount: count, 
+              itemBuilder: (c, i) => GestureDetector(
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (c) => const CardFlipView())), 
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white10, 
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.orangeAccent.withOpacity(0.2))
+                  ), 
+                  child: const Icon(Icons.style, color: Colors.orangeAccent)
+                ),
+              ),
+            ),
+          ),
+          const Text("ไถลงเพื่อกลับ ↓", style: TextStyle(color: Colors.white24, fontSize: 12)),
+          const SizedBox(height: 110),
+        ],
+      ),
+    );
+  }
+}
+
+// (หน้า CardFlipView คงเดิม)
+class CardFlipView extends StatefulWidget {
+  const CardFlipView({super.key});
+  @override State<CardFlipView> createState() => _CardFlipViewState();
+}
 class _CardFlipViewState extends State<CardFlipView> {
   bool isFront = true;
   @override
@@ -241,48 +291,16 @@ class _CardFlipViewState extends State<CardFlipView> {
                   transform: Matrix4.identity()..setEntry(3, 2, 0.001)..rotateY(value),
                   alignment: Alignment.center,
                   child: value < pi / 2 
-                      ? _cardSide(Icons.wb_sunny, "รูปภาพไพ่ (ด้านหน้า)") 
-                      : Transform(
-                          transform: Matrix4.rotationY(pi), 
-                          alignment: Alignment.center, 
-                          child: _cardSide(Icons.menu_book, "บทกวีหรือคำทำนาย"),
-                        ),
+                    ? _side(Icons.wb_sunny, "รูปภาพไพ่ (ด้านหน้า)") 
+                    : Transform(transform: Matrix4.rotationY(pi), alignment: Alignment.center, child: _side(Icons.menu_book, "บทกวีหรือคำทำนาย")),
                 ),
               ),
             ),
           ),
-          Positioned(
-            top: 50, left: 20, 
-            child: Container(
-              decoration: const BoxDecoration(color: Colors.black26, shape: BoxShape.circle), 
-              child: IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.white, size: 30), 
-                onPressed: () => Navigator.pop(context),
-              ),
-            ),
-          ),
+          Positioned(top: 50, left: 20, child: Container(decoration: const BoxDecoration(color: Colors.black26, shape: BoxShape.circle), child: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white, size: 30), onPressed: () => Navigator.pop(context)))),
         ],
       ),
     );
   }
-
-  Widget _cardSide(IconData icon, String text) => Container(
-    width: 280, height: 450, 
-    decoration: BoxDecoration(
-      color: const Color(0xFF1A1A2E), 
-      borderRadius: BorderRadius.circular(20), 
-      border: Border.all(color: Colors.orangeAccent.withOpacity(0.5), width: 3),
-    ), 
-    child: Column(
-      mainAxisAlignment: MainAxisAlignment.center, 
-      children: [
-        Icon(icon, size: 100, color: Colors.orangeAccent), 
-        const SizedBox(height: 30), 
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20), 
-          child: Text(text, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 16, height: 1.6)),
-        ),
-      ],
-    ),
-  );
+  Widget _side(IconData i, String t) => Container(width: 280, height: 450, decoration: BoxDecoration(color: const Color(0xFF1A1A2E), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.orangeAccent.withOpacity(0.5), width: 3)), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(i, size: 100, color: Colors.orangeAccent), const SizedBox(height: 30), Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: Text(t, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 16, height: 1.6)))]));
 }
