@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/routes/app_routes.dart';
 import '../widgets/custom_input_field.dart';
+import '../../core/routes/app_routes.dart';
+import '../../core/routes/admin_routes.dart';
 
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
@@ -75,7 +77,7 @@ class LoginPage extends StatelessWidget {
               height: 55,
               child: ElevatedButton(
                 onPressed: () {
-                  Navigator.pushNamed(context, AppRoutes.mainWrapper); //ค่อยใส่เงือนไขการ Login
+                  Navigator.pushNamed(context, AdminRoutes.adminDashboard); //ค่อยใส่เงือนไขการ Login
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.actionGreen,
