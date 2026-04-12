@@ -20,7 +20,6 @@ class _MainWrapperState extends State<MainWrapper> {
     const HomePage(),   // Index 0
     const SearchPage(), // Index 1
     const ManageDeckPage(),
-    const Center(child: Text("Add Page", style: TextStyle(color: Colors.white))), // Index 2 (รอทำ)
     const MyDeckPage(), // Index 3 (เปลี่ยนจาก Text เป็น MyDeckPage จริงๆ)
     const Center(child: Text("Profile", style: TextStyle(color: Colors.white))),  // Index 4 (รอทำ)
   ];
