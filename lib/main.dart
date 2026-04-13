@@ -1,7 +1,17 @@
 import 'package:flutter/material.dart';
-import 'views/login/login_page.dart';
+import 'core/routes/app_routes.dart';
+import 'core/routes/admin_routes.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // 4. สั่งเริ่มการทำงานของ Firebase
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
   runApp(const AuraMuseApp());
 }
 
@@ -13,11 +23,14 @@ class AuraMuseApp extends StatelessWidget {
     return MaterialApp(
       title: 'AuraMuse',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        fontFamily: 'Kanit', // หรือฟอนต์ที่คุณต้องการ
-        primarySwatch: Colors.blue,
-      ),
-      home: const LoginPage(), // กำหนดหน้าแรกเป็น LoginPage
+      //theme: ThemeData(fontFamily: 'Kanit'),
+      
+      // ใช้ระบบ Named Routes แทนการระบุ home: ตรงๆ
+      initialRoute: AppRoutes.login, 
+      routes: {
+        ... AppRoutes.getRoutes(), 
+        ... AdminRoutes.getRoutes(),
+      }
     );
   }
 }
