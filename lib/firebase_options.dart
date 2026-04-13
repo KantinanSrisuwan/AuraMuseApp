@@ -83,4 +83,5 @@ class DefaultFirebaseOptions {
     authDomain: 'aura-muse-app.firebaseapp.com',
     storageBucket: 'aura-muse-app.firebasestorage.app',
   );
+
 }
