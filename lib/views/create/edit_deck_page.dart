@@ -12,7 +12,7 @@ class EditDeckPage extends StatefulWidget {
 
 class _EditDeckPageState extends State<EditDeckPage> {
   final TextEditingController _nameController = TextEditingController();
-  List<String> _cards = []; // รายการรูปการ์ดในสำรับ
+  final List<String> _cards = []; // รายการรูปการ์ดในสำรับ
 
   @override
   void initState() {

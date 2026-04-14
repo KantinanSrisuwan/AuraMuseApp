@@ -35,7 +35,7 @@ class DeckListPage extends StatelessWidget {
               itemBuilder: (context, index) {
                 return GestureDetector(
                   onTap: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => DrawResultPage(deckName: deckName)));
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => DrawResultPage(deckId: deckData?['id'] ?? '', deckName: deckName)));
                   },
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(10),

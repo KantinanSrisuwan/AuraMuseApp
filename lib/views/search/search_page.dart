@@ -15,7 +15,7 @@ class SearchPage extends StatefulWidget {
 }
 
 class _SearchPageState extends State<SearchPage> {
-  int _selectedNavIndex = 1; // หน้า Search คือดัชนีที่ 1
+  final int _selectedNavIndex = 1; // หน้า Search คือดัชนีที่ 1
   
   // --- Mock Data: รายการ Deck ใน Database ---
   final List<Map<String, String>> _allDecks = [

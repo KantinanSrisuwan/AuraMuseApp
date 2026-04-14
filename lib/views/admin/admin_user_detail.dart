@@ -194,8 +194,9 @@ class _AdminUserDetailPageState extends State<AdminUserDetailPage> {
         );
         if (result == "delete") {
           setState(() {
-            if (deckCategoryIndex == 0) waitingDecks.removeAt(index);
-            else if (deckCategoryIndex == 1) publicDecks.removeAt(index);
+            if (deckCategoryIndex == 0) {
+              waitingDecks.removeAt(index);
+            } else if (deckCategoryIndex == 1) publicDecks.removeAt(index);
             else privateDecks.removeAt(index);
           });
         }

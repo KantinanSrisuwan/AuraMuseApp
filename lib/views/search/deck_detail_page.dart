@@ -71,7 +71,7 @@ class _DeckDetailPageState extends State<DeckDetailPage> {
           Expanded(
             child: Center(
               child: GestureDetector(
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => DrawResultPage(deckName: deckName))),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => DrawResultPage(deckId: widget.deckData?['id'] ?? '', deckName: deckName))),
                 // ใส่ HitTestBehavior เพื่อให้แรงปัดผ่านไปหา PageView ได้
                 behavior: HitTestBehavior.translucent, 
                 child: Hero(

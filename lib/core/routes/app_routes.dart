@@ -33,7 +33,7 @@ class AppRoutes {
       login: (context) => const LoginPage(),
       register: (context) => const RegisterPage(),
       mainWrapper: (context) => const MainWrapper(),
-      drawResult: (context) => const DrawResultPage(deckName: ''),
+      drawResult: (context) => const DrawResultPage(deckId: '', deckName: ''),
       deckDetail: (context) => const DeckViewWrapper(),
       myDeck: (context) => const MyDeckPage(),
       manageDeck: (context) => const ManageDeckPage(),
