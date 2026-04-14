@@ -13,8 +13,8 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
-  // สร้าง Controller มารับค่า Email, Name, Password, Confirm Password
-  final TextEditingController _nameController = TextEditingController();
+  // สร้าง Controller มารับค่า Username, Email, Password, Confirm Password
+  final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
@@ -23,7 +23,7 @@ class _RegisterPageState extends State<RegisterPage> {
   // ฟังก์ชันจัดการการลงทะเบียน
   Future<void> _handleRegister() async {
     // 1. ตรวจสอบว่าเต็มไหม
-    if (_nameController.text.isEmpty ||
+    if (_usernameController.text.isEmpty ||
         _emailController.text.isEmpty ||
         _passwordController.text.isEmpty ||
         _confirmPasswordController.text.isEmpty) {
@@ -59,10 +59,13 @@ class _RegisterPageState extends State<RegisterPage> {
           .doc(userCredential.user!.uid)
           .set({
         'uid': userCredential.user!.uid,
-        'name': _nameController.text.trim(),
+        'username': _usernameController.text.trim(),
         'email': _emailController.text.trim(),
         'role': 'user', // ตั้งค่า role เป็น user ปกติ
-        'createdAt': FieldValue.serverTimestamp(),
+        'total_decks_created': 0, // เริ่มต้น 0 เด็ค
+        'favorites': [], // รายการเด็คที่กดถูกใจ
+        'quick_draws': [], // รายการเด็คที่กดสายฟ้า
+        'created_at': FieldValue.serverTimestamp(),
       });
 
       if (!mounted) return;
@@ -119,7 +122,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   void dispose() {
-    _nameController.dispose();
+    _usernameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
@@ -154,7 +157,7 @@ class _RegisterPageState extends State<RegisterPage> {
             ),
             const SizedBox(height: 40),
             // ช่องกรอกข้อมูลสำหรับสมัครสมาชิก
-            CustomInputField(label: "NAME", controller: _nameController),
+            CustomInputField(label: "USERNAME", controller: _usernameController),
             const SizedBox(height: 20),
             CustomInputField(label: "EMAIL", controller: _emailController),
             const SizedBox(height: 20),

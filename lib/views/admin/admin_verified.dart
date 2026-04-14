@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/admin_drawer.dart';
 import '../../core/routes/admin_routes.dart';
+import '../../services/firestore_service.dart';
 
 class AdminVerified extends StatefulWidget {
   const AdminVerified({super.key});
@@ -41,21 +42,49 @@ class _AdminVerifiedState extends State<AdminVerified> {
           ),
           const SizedBox(height: 20),
           Expanded(
-            child: ListView(
-              children: [
-                _buildVerifiedItem(
-                  deckId: "1087",
-                  cardCount: "15",
-                  deckName: "ความสงบและเที่ยงธรรม",
-                  dateCreated: "08/03/2026",
-                ),
-                _buildVerifiedItem(
-                  deckId: "1083",
-                  cardCount: "15",
-                  deckName: "บทนำสู่ความรุ่งโรจน์",
-                  dateCreated: "06/03/2026",
-                ),
-              ],
+            child: FutureBuilder(
+              future: FirestoreService.getDecksByStatus('pending'),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(color: Colors.white),
+                  );
+                }
+
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Text(
+                      'เกิดข้อผิดพลาด: ${snapshot.error}',
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  );
+                }
+
+                final decks = snapshot.data ?? [];
+
+                if (decks.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      'ไม่มีสำรับที่รอการตรวจสอบ',
+                      style: TextStyle(color: Colors.white70, fontSize: 16),
+                    ),
+                  );
+                }
+
+                return ListView.builder(
+                  itemCount: decks.length,
+                  itemBuilder: (context, index) {
+                    final deck = decks[index];
+                    return _buildVerifiedItem(
+                      deckId: deck.id,
+                      cardCount: deck.cardCount.toString(),
+                      deckName: deck.deckName,
+                      dateCreated:
+                          '${deck.createdAt.day}/${deck.createdAt.month}/${deck.createdAt.year}',
+                    );
+                  },
+                );
+              },
             ),
           ),
         ],

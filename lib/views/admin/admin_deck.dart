@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/admin_drawer.dart';
 import '../../core/routes/admin_routes.dart';
+import '../../services/firestore_service.dart';
 
 class AdminDeck extends StatefulWidget {
   const AdminDeck({super.key});
@@ -43,21 +44,49 @@ class _AdminDeckState extends State<AdminDeck> {
           ),
           const SizedBox(height: 20),
           Expanded(
-            child: ListView(
-              children: [
-                _buildDeckItem(
-                  deckId: "1082",
-                  cardCount: "7",
-                  deckName: "บทกวีแห่งพงไพร",
-                  dateCreated: "08/03/2026",
-                ),
-                _buildDeckItem(
-                  deckId: "1083",
-                  cardCount: "15",
-                  deckName: "บทนำสู่ความรุ่งโรจน์",
-                  dateCreated: "06/03/2026",
-                ),
-              ],
+            child: FutureBuilder(
+              future: FirestoreService.getAllDecks(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(color: Colors.white),
+                  );
+                }
+
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Text(
+                      'เกิดข้อผิดพลาด: ${snapshot.error}',
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  );
+                }
+
+                final decks = snapshot.data ?? [];
+
+                if (decks.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      'ไม่มีสำรับในระบบ',
+                      style: TextStyle(color: Colors.white70, fontSize: 16),
+                    ),
+                  );
+                }
+
+                return ListView.builder(
+                  itemCount: decks.length,
+                  itemBuilder: (context, index) {
+                    final deck = decks[index];
+                    return _buildDeckItem(
+                      deckId: deck.id,
+                      cardCount: deck.cardCount.toString(),
+                      deckName: deck.deckName,
+                      dateCreated:
+                          '${deck.createdAt.day}/${deck.createdAt.month}/${deck.createdAt.year}',
+                    );
+                  },
+                );
+              },
             ),
           ),
         ],

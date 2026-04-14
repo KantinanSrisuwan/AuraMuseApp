@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
+import '../../services/firestore_service.dart';
 
 // ==========================================================
 // 1. หน้าหลัก (Controller) - คุมการสลับระหว่าง "ไฟล์ข้อมูล" และ "ไฟล์รายการไพ่"
@@ -78,7 +79,27 @@ class _AdminDeckDetailPageState extends State<AdminDeckDetailPage> {
         content: const Text("การลบข้อมูลนี้เป็นการลบข้อมูลของสำรับถาวร ยืนยันที่จะลบหรือไม่", style: TextStyle(color: Colors.white70)),
         actions: [
           Row(children: [
-            Expanded(child: _actionButton("ยืนยัน", Colors.redAccent, () => Navigator.of(context)..pop()..pop("delete"))),
+            Expanded(
+              child: _actionButton("ยืนยัน", Colors.redAccent, () async {
+                final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+                String deckId = args['deckId'] ?? '';
+                
+                // ลบ deck จาก Firebase
+                bool success = await FirestoreService.deleteDeck(deckId);
+                
+                Navigator.of(context).pop(); // ปิด dialog
+                if (success) {
+                  Navigator.of(context).pop(); // กลับไปหน้าก่อนหน้า
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('ไม่สามารถลบสำรับได้'),
+                      backgroundColor: Colors.redAccent,
+                    ),
+                  );
+                }
+              }),
+            ),
             const SizedBox(width: 10),
             Expanded(child: _actionButton("ยกเลิก", const Color(0xFF455A64), () => Navigator.pop(context))),
           ]),
@@ -185,19 +206,26 @@ class DeckInfoPart extends StatelessWidget {
 // ==========================================================
 // 3. ไฟล์หน้ารายการไพ่ (DeckGridPart)
 // ==========================================================
-class DeckGridPart extends StatelessWidget {
+class DeckGridPart extends StatefulWidget {
   final Map<String, dynamic> args;
   final VoidCallback onBack;
   const DeckGridPart({super.key, required this.args, required this.onBack});
 
   @override
+  State<DeckGridPart> createState() => _DeckGridPartState();
+}
+
+class _DeckGridPartState extends State<DeckGridPart> {
+  @override
   Widget build(BuildContext context) {
-    int cardCount = int.tryParse(args['cardCount'].toString()) ?? 0;
+    int cardCount = int.tryParse(widget.args['cardCount'].toString()) ?? 0;
+    String deckId = widget.args['deckId'] ?? '';
+
     return NotificationListener<ScrollNotification>(
       onNotification: (notification) {
         // ถ้าไถลงจนสุดขอบบนแล้ว ให้สั่งกลับหน้าข้อมูล
         if (notification is ScrollUpdateNotification && notification.metrics.pixels <= 0 && notification.scrollDelta! < -5) {
-          onBack();
+          widget.onBack();
         }
         return false;
       },
@@ -209,29 +237,83 @@ class DeckGridPart extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(args['deckName'] ?? "สำรับ", style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                Text(widget.args['deckName'] ?? "สำรับ", style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
                 Text("$cardCount ใบ", style: const TextStyle(color: Colors.white70)),
               ],
             ),
           ),
           const Divider(color: Colors.white24, indent: 20, endIndent: 20, height: 30),
           Expanded(
-            child: GridView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              physics: const BouncingScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, childAspectRatio: 0.7, crossAxisSpacing: 12, mainAxisSpacing: 12),
-              itemCount: cardCount,
-              itemBuilder: (context, index) => GestureDetector(
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (c) => const CardFlipView())),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.05), 
-                    borderRadius: BorderRadius.circular(8), 
-                    border: Border.all(color: Colors.orangeAccent.withOpacity(0.2))
-                  ), 
-                  child: const Icon(Icons.style, color: Colors.orangeAccent, size: 40)
-                ),
-              ),
+            child: FutureBuilder<List<Map<String, dynamic>>>(
+              future: FirestoreService.getCardsByDeckId(deckId),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(color: Colors.white),
+                  );
+                }
+
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Text(
+                      'เกิดข้อผิดพลาด: ${snapshot.error}',
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  );
+                }
+
+                final cards = snapshot.data ?? [];
+
+                if (cards.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      'ไม่มีไพ่ในสำรับนี้',
+                      style: TextStyle(color: Colors.white70),
+                    ),
+                  );
+                }
+
+                return GridView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  physics: const BouncingScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3, 
+                    childAspectRatio: 0.7, 
+                    crossAxisSpacing: 12, 
+                    mainAxisSpacing: 12
+                  ),
+                  itemCount: cards.length,
+                  itemBuilder: (context, index) {
+                    final card = cards[index];
+                    return GestureDetector(
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (c) => CardFlipView(
+                            frontImage: card['front_image'] ?? '',
+                            backText: card['back_text'] ?? 'ไม่มีข้อความ',
+                          ),
+                        ),
+                      ),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.05),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.orangeAccent.withOpacity(0.2)),
+                        ),
+                        child: card['front_image'] != null && card['front_image']!.isNotEmpty
+                            ? Image.network(
+                                card['front_image']!,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    const Icon(Icons.style, color: Colors.orangeAccent, size: 40),
+                              )
+                            : const Icon(Icons.style, color: Colors.orangeAccent, size: 40),
+                      ),
+                    );
+                  },
+                );
+              },
             ),
           ),
           const Text("ไถลงเพื่อกลับ ↓", style: TextStyle(color: Colors.white24, fontSize: 12)),
@@ -246,11 +328,22 @@ class DeckGridPart extends StatelessWidget {
 // 4. หน้าพลิกไพ่ 3D (แชร์ฟังก์ชันร่วมกัน)
 // ==========================================================
 class CardFlipView extends StatefulWidget {
-  const CardFlipView({super.key});
-  @override State<CardFlipView> createState() => _CardFlipViewState();
+  final String frontImage;
+  final String backText;
+
+  const CardFlipView({
+    super.key,
+    this.frontImage = '',
+    this.backText = 'ไม่มีข้อความ',
+  });
+
+  @override
+  State<CardFlipView> createState() => _CardFlipViewState();
 }
+
 class _CardFlipViewState extends State<CardFlipView> {
   bool isFront = true;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -267,28 +360,109 @@ class _CardFlipViewState extends State<CardFlipView> {
                   builder: (context, double value, child) => Transform(
                     transform: Matrix4.identity()..setEntry(3, 2, 0.001)..rotateY(value),
                     alignment: Alignment.center,
-                    child: value < pi / 2 
-                        ? _cardSide(Icons.wb_sunny, "รูปภาพไพ่ (ด้านหน้า)") 
-                        : Transform(transform: Matrix4.rotationY(pi), alignment: Alignment.center, child: _cardSide(Icons.menu_book, "บทกวีหรือคำทำนาย")),
+                    child: value < pi / 2
+                        ? _cardFront()
+                        : Transform(
+                            transform: Matrix4.rotationY(pi),
+                            alignment: Alignment.center,
+                            child: _cardBack(),
+                          ),
                   ),
                 ),
               ),
             ),
             Positioned(
-              top: 10, left: 10, 
+              top: 10,
+              left: 10,
               child: Container(
-                decoration: const BoxDecoration(color: Colors.black26, shape: BoxShape.circle), 
-                child: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white, size: 30), onPressed: () => Navigator.pop(context))
-              )
+                decoration: const BoxDecoration(color: Colors.black26, shape: BoxShape.circle),
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.white, size: 30),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
             ),
           ],
         ),
       ),
     );
   }
-  Widget _cardSide(IconData icon, String text) => Container(
-    width: 280, height: 450, 
-    decoration: BoxDecoration(color: const Color(0xFF1A1A2E), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.orangeAccent.withOpacity(0.5), width: 3)), 
-    child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(icon, size: 100, color: Colors.orangeAccent), const SizedBox(height: 30), Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: Text(text, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 16, height: 1.6)))])
-  );
+
+  Widget _cardFront() {
+    return Container(
+      width: 280,
+      height: 450,
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A2E),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.orangeAccent.withOpacity(0.5), width: 3),
+      ),
+      child: widget.frontImage.isNotEmpty
+          ? ClipRRect(
+              borderRadius: BorderRadius.circular(17),
+              child: Image.network(
+                widget.frontImage,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: const [
+                      Icon(Icons.image_not_supported, size: 80, color: Colors.orangeAccent),
+                      SizedBox(height: 20),
+                      Text(
+                        'ไม่สามารถโหลดรูป',
+                        style: TextStyle(color: Colors.white70),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            )
+          : Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  Icon(Icons.wb_sunny, size: 100, color: Colors.orangeAccent),
+                  SizedBox(height: 30),
+                  Text(
+                    'รูปภาพไพ่\n(ด้านหน้า)',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.white70, fontSize: 16),
+                  ),
+                ],
+              ),
+            ),
+    );
+  }
+
+  Widget _cardBack() {
+    return Container(
+      width: 280,
+      height: 450,
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A2E),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.orangeAccent.withOpacity(0.5), width: 3),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.menu_book, size: 100, color: Colors.orangeAccent),
+          const SizedBox(height: 30),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Text(
+              widget.backText,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                height: 1.6,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
