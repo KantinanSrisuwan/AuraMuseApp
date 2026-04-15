@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'deck_detail_page.dart';
 import 'deck_list_page.dart';
 
@@ -15,7 +16,8 @@ class _DeckViewWrapperState extends State<DeckViewWrapper> {
 
   @override
   Widget build(BuildContext context) {
-    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    // ดึง deckData จาก route arguments ที่ส่งมาจาก search_page.dart
+    final deckData = ModalRoute.of(context)?.settings.arguments as QueryDocumentSnapshot?;
 
     return Scaffold(
       backgroundColor: Colors.black, // พื้นหลังดำสนิทเพื่อให้รอยต่อดูเนียน
@@ -26,8 +28,8 @@ class _DeckViewWrapperState extends State<DeckViewWrapper> {
         // *** หัวใจสำคัญ: ทำให้ดีดล็อคหน้าแบบ TikTok ***
         physics: const PageScrollPhysics(parent: BouncingScrollPhysics()), 
         children: [
-          DeckDetailPage(deckData: args),
-          DeckListPage(deckData: args),
+          DeckDetailPage(deckData: deckData),
+          DeckListPage(deckData: deckData),
         ],
       ),
     );

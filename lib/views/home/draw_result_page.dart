@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:palette_generator/palette_generator.dart'; // ตัวดึงสีจากรูป
+import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:math';
 import '../../core/constants/app_colors.dart';
 import '../widgets/flippable_card.dart';
@@ -21,15 +22,30 @@ class _DrawResultPageState extends State<DrawResultPage> {
   // ตัวแปรเก็บไพ่ที่สุ่มได้
   String _imageUrl = '';
   String _cardText = 'กำลังโหลด...';
+  bool _isFirstDraw = true; // ตัวแปรย่อมรู้ว่าครั้งแรกที่เปิดหน้า
   
   // Firebase reference
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   @override
   void initState() {
     super.initState();
     // สั่งให้ดึงไพ่แบบสุ่มทันทีเมื่อเข้าหน้านี้
     _fetchRandomCard();
+  }
+
+  // ฟังก์ชันเพิ่ม draw_count ของ deck
+  Future<void> _incrementDrawCount() async {
+    try {
+      if (widget.deckId.isEmpty) return;
+
+      await _firestore.collection('decks').doc(widget.deckId).update({
+        'draw_count': FieldValue.increment(1),
+      });
+    } catch (e) {
+      print('Error incrementing draw_count: $e');
+    }
   }
 
   // ฟังก์ชันดึงไพ่แบบสุ่มจาก sub-collection
@@ -58,6 +74,12 @@ class _DrawResultPageState extends State<DrawResultPage> {
         _imageUrl = randomCard['front_image'] ?? '';
         _cardText = randomCard['back_text'] ?? 'ไม่มีข้อมูล';
       });
+
+      // เพิ่ม draw_count เฉพาะครั้งแรกเมื่อเข้าหน้า
+      if (_isFirstDraw) {
+        _isFirstDraw = false;
+        _incrementDrawCount();
+      }
 
       // ดึงสีจากรูปภาพ
       if (_imageUrl.isNotEmpty) {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../core/constants/app_colors.dart';
 import '../widgets/custom_navbar.dart';
 import '/views/search/deck_detail_page.dart';
@@ -17,34 +18,52 @@ class SearchPage extends StatefulWidget {
 class _SearchPageState extends State<SearchPage> {
   final int _selectedNavIndex = 1; // หน้า Search คือดัชนีที่ 1
   
-  // --- Mock Data: รายการ Deck ใน Database ---
-  final List<Map<String, String>> _allDecks = [
-    {'name': 'Golden Sun', 'code': '1001', 'image': 'https://picsum.photos/seed/1/200/300'},
-    {'name': 'Moonlight', 'code': '1002', 'image': 'https://picsum.photos/seed/2/200/300'},
-    {'name': 'Cosmic Eye', 'code': '1003', 'image': 'https://picsum.photos/seed/3/200/300'},
-    {'name': 'Galaxy Portal', 'code': '1004', 'image': 'https://picsum.photos/seed/4/200/300'},
-    {'name': 'Starlight', 'code': '1005', 'image': 'https://picsum.photos/seed/5/200/300'},
-    {'name': 'Eternity', 'code': '1006', 'image': 'https://picsum.photos/seed/6/200/300'},
-  ];
-
+  // Firebase reference
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  
   // ตัวแปรเก็บผลลัพธ์ที่กรองแล้ว
-  List<Map<String, String>> _filteredDecks = [];
+  List<QueryDocumentSnapshot> _filteredDecks = [];
+  List<QueryDocumentSnapshot> _allVerifiedDecks = [];
+  bool _isLoading = true; // เพิ่มตัวแปรสำหรับ loading state
 
   @override
   void initState() {
     super.initState();
-    _filteredDecks = _allDecks; // เริ่มต้นให้โชว์ทั้งหมด
+    _fetchVerifiedDecks();
+  }
+
+  // ฟังก์ชันดึง Deck ที่ verified จาก Firebase
+  Future<void> _fetchVerifiedDecks() async {
+    try {
+      QuerySnapshot snapshot = await _firestore
+          .collection('decks')
+          .where('deck_status', isEqualTo: 'verified')
+          .get();
+
+      setState(() {
+        _allVerifiedDecks = snapshot.docs;
+        _filteredDecks = snapshot.docs;
+        _isLoading = false; // เลิกโหลด
+      });
+    } catch (e) {
+      print('Error fetching verified decks: $e');
+      setState(() => _isLoading = false);
+    }
   }
 
   // ฟังก์ชันสำหรับการค้นหา (Logic ที่คุณถาม)
   void _runFilter(String enteredKeyword) {
-    List<Map<String, String>> results = [];
+    List<QueryDocumentSnapshot> results = [];
     if (enteredKeyword.isEmpty) {
-      results = _allDecks;
+      results = _allVerifiedDecks;
     } else {
-      results = _allDecks.where((deck) =>
-          deck["name"]!.toLowerCase().contains(enteredKeyword.toLowerCase()) ||
-          deck["code"]!.contains(enteredKeyword)).toList();
+      results = _allVerifiedDecks.where((deck) {
+        final deckName = (deck['deck_name'] ?? '').toString().toLowerCase();
+        final creatorUsername = (deck['creator_username'] ?? '').toString().toLowerCase();
+        final keyword = enteredKeyword.toLowerCase();
+        
+        return deckName.contains(keyword) || creatorUsername.contains(keyword);
+      }).toList();
     }
 
     setState(() {
@@ -59,7 +78,7 @@ class _SearchPageState extends State<SearchPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // 1. ส่วน Search Bar ตามรูป
+            // 1. ส่วน Search Bar
             Padding(
               padding: const EdgeInsets.all(20.0),
               child: Row(
@@ -79,7 +98,7 @@ class _SearchPageState extends State<SearchPage> {
                         decoration: const InputDecoration(
                           contentPadding: EdgeInsets.symmetric(horizontal: 15),
                           border: InputBorder.none,
-                          hintText: "ค้นหาด้วยชื่อ หรือ Code...",
+                          hintText: "ค้นหาด้วยชื่อหรือผู้สร้าง...",
                           hintStyle: TextStyle(color: Colors.white38),
                         ),
                       ),
@@ -91,23 +110,37 @@ class _SearchPageState extends State<SearchPage> {
 
             // 2. รายการ Deck (Grid View)
             Expanded(
-              child: _filteredDecks.isNotEmpty
-                  ? GridView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 3, // แสดง 3 คอลัมน์ตามรูป
-                        crossAxisSpacing: 15,
-                        mainAxisSpacing: 15,
-                        childAspectRatio: 0.7, // สัดส่วนแนวตั้งของไพ่
+              child: _isLoading
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const CircularProgressIndicator(color: Colors.amber),
+                          const SizedBox(height: 15),
+                          const Text(
+                            "กำลังโหลด Deck...",
+                            style: TextStyle(color: Colors.white70, fontSize: 14),
+                          ),
+                        ],
                       ),
-                      itemCount: _filteredDecks.length,
-                      itemBuilder: (context, index) {
-                        return _buildDeckItem(_filteredDecks[index]);
-                      },
                     )
-                  : const Center(
-                      child: Text("ไม่พบ Deck ที่คุณค้นหา", style: TextStyle(color: Colors.white38)),
-                    ),
+                  : _filteredDecks.isNotEmpty
+                      ? GridView.builder(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 3, // แสดง 3 คอลัมน์ตามรูป
+                            crossAxisSpacing: 15,
+                            mainAxisSpacing: 15,
+                            childAspectRatio: 0.7, // สัดส่วนแนวตั้งของไพ่
+                          ),
+                          itemCount: _filteredDecks.length,
+                          itemBuilder: (context, index) {
+                            return _buildDeckItem(_filteredDecks[index]);
+                          },
+                        )
+                      : const Center(
+                          child: Text("ไม่พบ Deck ที่คุณค้นหา", style: TextStyle(color: Colors.white38)),
+                        ),
             ),
           ],
         ),
@@ -116,30 +149,34 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   // Widget สำหรับแต่ละใบใน Grid
-  Widget _buildDeckItem(Map<String, String> deck) {
+  Widget _buildDeckItem(QueryDocumentSnapshot deck) {
+    final String deckName = deck['deck_name'] ?? 'สำรับไพ่';
+    final String coverImage = deck['cover_image'] ?? '';
+    final String deckId = deck.id;
+    
     return GestureDetector(
       onTap: () {
-  Navigator.push(
-    context,
-    PageRouteBuilder(
-      pageBuilder: (context, animation, secondaryAnimation) => const DeckViewWrapper(),
-      settings: RouteSettings(arguments: deck), // ส่งข้อมูล deck ไปเหมือนเดิม
-      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        // ใช้ FadeTransition (ค่อยๆ จางปรากฏ) + ScaleTransition (ค่อยๆ ขยาย)
-        return FadeTransition(
-          opacity: animation,
-          child: ScaleTransition(
-            scale: Tween<double>(begin: 0.9, end: 1.0).animate(
-              CurvedAnimation(parent: animation, curve: Curves.easeOutBack),
-            ),
-            child: child,
+        Navigator.push(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) => const DeckViewWrapper(),
+            settings: RouteSettings(arguments: deck), // ส่งข้อมูล deck จาก Firebase
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              // ใช้ FadeTransition (ค่อยๆ จางปรากฏ) + ScaleTransition (ค่อยๆ ขยาย)
+              return FadeTransition(
+                opacity: animation,
+                child: ScaleTransition(
+                  scale: Tween<double>(begin: 0.9, end: 1.0).animate(
+                    CurvedAnimation(parent: animation, curve: Curves.easeOutBack),
+                  ),
+                  child: child,
+                ),
+              );
+            },
+            transitionDuration: const Duration(milliseconds: 500), // ความเร็วในการเปิดหน้า
           ),
         );
       },
-      transitionDuration: const Duration(milliseconds: 500), // ความเร็วในการเปิดหน้า
-    ),
-  );
-},
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(8),
@@ -147,10 +184,33 @@ class _SearchPageState extends State<SearchPage> {
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(8),
-          child: Image.network(
-            deck['image']!,
-            fit: BoxFit.cover,
-          ),
+          child: coverImage.isNotEmpty
+              ? Image.network(
+                  coverImage,
+                  fit: BoxFit.cover,
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return Container(
+                      color: Colors.grey[800],
+                      child: const Center(
+                        child: SizedBox(
+                          width: 30,
+                          height: 30,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.amber),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                  errorBuilder: (context, error, stackTrace) =>
+                      const Center(child: Icon(Icons.image_not_supported, color: Colors.white30)),
+                )
+              : Container(
+                  color: Colors.grey[800],
+                  child: const Center(child: Icon(Icons.image_not_supported, color: Colors.white30)),
+                ),
         ),
       ),
     );

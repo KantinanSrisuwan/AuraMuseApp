@@ -59,10 +59,14 @@ class _RegisterPageState extends State<RegisterPage> {
           .doc(userCredential.user!.uid)
           .set({
         'uid': userCredential.user!.uid,
-        'name': _nameController.text.trim(),
+        'username': _nameController.text.trim(), // ชื่อที่ใช้แสดงในแอป
         'email': _emailController.text.trim(),
         'role': 'user', // ตั้งค่า role เป็น user ปกติ
-        'createdAt': FieldValue.serverTimestamp(),
+        'created_at': FieldValue.serverTimestamp(),
+        'favorites': [], // เก็บ Deck IDs ที่ถูกใจ
+        'quick_draws': [], // เก็บ Deck IDs ที่กดสายฟ้า
+        'my_decks': [], // เก็บ Deck IDs ที่ user สร้าง
+        'total_decks_created': 0, // จำนวน Deck ที่สร้าง
       });
 
       if (!mounted) return;
