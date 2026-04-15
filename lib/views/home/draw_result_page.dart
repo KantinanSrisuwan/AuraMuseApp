@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:palette_generator/palette_generator.dart'; // ตัวดึงสีจากรูป
-import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:math';
 import '../../core/constants/app_colors.dart';
 import '../widgets/flippable_card.dart';
@@ -26,7 +25,6 @@ class _DrawResultPageState extends State<DrawResultPage> {
   
   // Firebase reference
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   @override
   void initState() {

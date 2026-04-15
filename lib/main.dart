@@ -23,14 +23,13 @@ class AuraMuseApp extends StatelessWidget {
     return MaterialApp(
       title: 'AuraMuse',
       debugShowCheckedModeBanner: false,
-      //theme: ThemeData(fontFamily: 'Kanit'),
       
-      // ใช้ระบบ Named Routes แทนการระบุ home: ตรงๆ
       initialRoute: AppRoutes.login, 
       routes: {
         ... AppRoutes.getRoutes(), 
         ... AdminRoutes.getRoutes(),
-      }
+      },
+      onGenerateRoute: AppRoutes.onGenerateRoute,
     );
   }
 }

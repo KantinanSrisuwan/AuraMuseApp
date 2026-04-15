@@ -38,7 +38,18 @@ class AppRoutes {
       myDeck: (context) => const MyDeckPage(),
       manageDeck: (context) => const ManageDeckPage(),
       editDeck: (context) => const EditDeckPage(),
-      addCard: (context) => const AddCardPage(),
     };
+  }
+
+  static Route<dynamic> onGenerateRoute(RouteSettings settings) {
+    switch (settings.name) {
+      case addCard:
+        final deckId = settings.arguments as String;
+        return MaterialPageRoute(
+          builder: (context) => AddCardPage(deckId: deckId),
+        );
+      default:
+        return MaterialPageRoute(builder: (context) => const LoginPage());
+    }
   }
 }

@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../core/constants/app_colors.dart';
-import '../widgets/custom_navbar.dart';
-import '/views/search/deck_detail_page.dart';
-import 'package:project_flutter/core/routes/app_routes.dart';
 import 'deck_view_wrapper.dart';
 
 
@@ -16,8 +13,6 @@ class SearchPage extends StatefulWidget {
 }
 
 class _SearchPageState extends State<SearchPage> {
-  final int _selectedNavIndex = 1; // หน้า Search คือดัชนีที่ 1
-  
   // Firebase reference
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   
@@ -150,9 +145,7 @@ class _SearchPageState extends State<SearchPage> {
 
   // Widget สำหรับแต่ละใบใน Grid
   Widget _buildDeckItem(QueryDocumentSnapshot deck) {
-    final String deckName = deck['deck_name'] ?? 'สำรับไพ่';
-    final String coverImage = deck['cover_image'] ?? '';
-    final String deckId = deck.id;
+    final String coverImage = deck['cover_image'] ?? 'สำรับไพ่';
     
     return GestureDetector(
       onTap: () {

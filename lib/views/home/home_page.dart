@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../core/constants/app_colors.dart';
 import 'draw_result_page.dart';
 
@@ -15,51 +16,98 @@ class _HomePageState extends State<HomePage> {
   final PageController _pageController = PageController();
   
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  late Future<List<QueryDocumentSnapshot>> _decksFuture;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   @override
   void initState() {
     super.initState();
-    _decksFuture = _fetchDecks(); // ดึงข้อมูลจากคอลเลกชัน decks
   }
 
-  Future<List<QueryDocumentSnapshot>> _fetchDecks() async {
-    try {
-      // ดึงข้อมูลทั้งหมดจาก Firestore เพื่อมาแสดงผล
-      QuerySnapshot snapshot = await _firestore.collection('decks').get();
-      return snapshot.docs;
-    } catch (e) {
-      print('Error fetching decks: $e');
-      return [];
+  // Stream function สำหรับ real-time quick_draws
+  Stream<List<DocumentSnapshot>> _getQuickDrawsStream() async* {
+    final user = _auth.currentUser;
+    if (user == null) {
+      yield [];
+      return;
     }
+
+    // Listen user document เพื่อดู quick_draws array
+    yield* _firestore.collection('users').doc(user.uid).snapshots().asyncMap(
+      (userDoc) async {
+        if (!userDoc.exists) {
+          print('User document not found');
+          return [];
+        }
+
+        // ดึง quick_draws array
+        final quickDrawIds = List<String>.from(userDoc['quick_draws'] ?? []);
+        print('Quick draws IDs: $quickDrawIds');
+        
+        if (quickDrawIds.isEmpty) {
+          print('No quick draws found');
+          return [];
+        }
+
+        // ดึง deck documents ทั้งหมดจาก quick_draws
+        List<DocumentSnapshot> decks = [];
+        for (String deckId in quickDrawIds) {
+          try {
+            final deckDoc = await _firestore.collection('decks').doc(deckId).get();
+            if (deckDoc.exists) {
+              print('Found deck: $deckId - ${deckDoc['deck_name']}');
+              decks.add(deckDoc);
+            } else {
+              print('Deck not found: $deckId');
+            }
+          } catch (e) {
+            print('Error fetching deck $deckId: $e');
+          }
+        }
+        print('Total decks loaded: ${decks.length}');
+        return decks;
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.backgroundNavy, // ใช้สีพื้นหลังที่ตั้งค่าไว้
-      body: FutureBuilder<List<QueryDocumentSnapshot>>(
-        future: _decksFuture,
+      backgroundColor: AppColors.backgroundNavy,
+      body: StreamBuilder<List<DocumentSnapshot>>(
+        stream: _getQuickDrawsStream(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator(color: Colors.amber));
           }
 
-          if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
+          if (snapshot.hasError) {
+            print('Stream error: ${snapshot.error}');
+            return Center(
+              child: Text(
+                'เกิดข้อผิดพลาด: ${snapshot.error}',
+                style: const TextStyle(color: Colors.white70, fontSize: 16),
+              ),
+            );
+          }
+
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            print('No data or empty decks');
             return const Center(
               child: Text(
-                'ไม่มีเด็คให้เลือก',
+                'ไม่มีเด็คให้เลือก\nโปรดเพิ่มเด็คไปยัง Quick Draws',
                 style: TextStyle(color: Colors.white70, fontSize: 18),
+                textAlign: TextAlign.center,
               ),
             );
           }
 
           final decks = snapshot.data!;
+          print('Displaying ${decks.length} decks');
 
           return SafeArea(
             child: Column(
               children: [
-                const SizedBox(height: 10), // ลดระยะห่างด้านบนสุดลง
+                const SizedBox(height: 10),
                 _buildDeckSelector(decks),
                 Expanded(
                   child: PageView.builder(
@@ -81,7 +129,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  void _onDeckSelected(int index, List<QueryDocumentSnapshot> decks) {
+  void _onDeckSelected(int index, List<DocumentSnapshot> decks) {
     setState(() => _selectedDeckIndex = index);
     _pageController.animateToPage(
       index,
@@ -90,7 +138,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildDeckSelector(List<QueryDocumentSnapshot> decks) {
+  Widget _buildDeckSelector(List<DocumentSnapshot> decks) {
     return SizedBox(
       height: 50,
       child: ListView.builder(
@@ -99,7 +147,7 @@ class _HomePageState extends State<HomePage> {
         padding: const EdgeInsets.symmetric(horizontal: 20),
         itemBuilder: (context, index) {
           bool isSelected = _selectedDeckIndex == index;
-          final deckName = decks[index]['deck_name'] ?? 'DECK ${index + 1}'; // ดึงชื่อเด็คจากฟิลด์ deck_name
+          final deckName = decks[index]['deck_name'] ?? 'DECK ${index + 1}';
           
           return GestureDetector(
             onTap: () => _onDeckSelected(index, decks),
@@ -131,7 +179,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildDeckCard(int index, List<QueryDocumentSnapshot> decks) {
+  Widget _buildDeckCard(int index, List<DocumentSnapshot> decks) {
     final deck = decks[index];
     final deckId = deck.id;
     final deckName = deck['deck_name'] ?? 'DECK ${index + 1}';

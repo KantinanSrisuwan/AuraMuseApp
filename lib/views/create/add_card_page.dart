@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/utils/cloudinary_service.dart';
 
 class AddCardPage extends StatefulWidget {
-  const AddCardPage({super.key});
+  final String deckId;
+  const AddCardPage({super.key, required this.deckId});
 
   @override
   State<AddCardPage> createState() => _AddCardPageState();
@@ -10,7 +13,112 @@ class AddCardPage extends StatefulWidget {
 
 class _AddCardPageState extends State<AddCardPage> {
   final TextEditingController _backTextController = TextEditingController();
-  String? _selectedImagePath; // ตัวแปรสำหรับเก็บ Path รูปภาพ (รอต่อ Logic)
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  
+  String? _frontImageUrl; // URL ของรูปหน้าการ์ดจาก Cloudinary
+  bool _isUploadingImage = false;
+  bool _isCreating = false;
+
+  // ฟังก์ชันอัพโหลดรูปหน้าการ์ด
+  Future<void> _uploadFrontImage() async {
+    setState(() => _isUploadingImage = true);
+    
+    try {
+      final imageFile = await CloudinaryService.pickImage();
+      if (imageFile == null) {
+        setState(() => _isUploadingImage = false);
+        return;
+      }
+
+      _showLoadingDialog('กำลังอัพโหลดรูปภาพ...');
+
+      final imageUrl = await CloudinaryService.uploadImage(imageFile);
+      
+      if (!mounted) return;
+      Navigator.pop(context); // ปิด loading dialog
+
+      if (imageUrl != null) {
+        setState(() {
+          _frontImageUrl = imageUrl;
+        });
+        _showSuccess('อัพโหลดรูปภาพสำเร็จ!');
+      } else {
+        _showError('ไม่สามารถอัพโหลดรูปภาพได้');
+      }
+    } catch (e) {
+      if (mounted) Navigator.pop(context); // ปิด loading dialog
+      _showError('เกิดข้อผิดพลาด: $e');
+    } finally {
+      if (mounted) setState(() => _isUploadingImage = false);
+    }
+  }
+
+  // ฟังก์ชันสร้างการ์ดใหม่ใน Firebase
+  Future<void> _createCard() async {
+    if (_frontImageUrl == null || _frontImageUrl!.isEmpty) {
+      _showError('กรุณาเลือกรูปภาพในการ์ด');
+      return;
+    }
+
+    if (_backTextController.text.isEmpty) {
+      _showError('กรุณากรอกข้อความหลังการ์ด');
+      return;
+    }
+
+    setState(() => _isCreating = true);
+
+    try {
+      // สร้าง sub-collection 'cards' ใน deck นี้
+      final newCardRef = _firestore
+          .collection('decks')
+          .doc(widget.deckId)
+          .collection('cards')
+          .doc();
+
+      await newCardRef.set({
+        'front_image': _frontImageUrl,
+        'back_text': _backTextController.text.trim(),
+        'created_at': FieldValue.serverTimestamp(),
+      });
+
+      _showSuccess('เพิ่มการ์ดสำเร็จ!');
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      _showError('เกิดข้อผิดพลาด: $e');
+    } finally {
+      if (mounted) setState(() => _isCreating = false);
+    }
+  }
+
+  void _showLoadingDialog(String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const CircularProgressIndicator(color: Colors.amber),
+            const SizedBox(height: 15),
+            Text(message, style: const TextStyle(color: Colors.white)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showError(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), backgroundColor: Colors.redAccent),
+    );
+  }
+
+  void _showSuccess(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), backgroundColor: AppColors.actionGreen),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +130,7 @@ class _AddCardPageState extends State<AddCardPage> {
         title: const Text("สร้างการ์ดใบใหม่", 
           style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
         leading: IconButton(
-          icon: const Icon(Icons.close, color: Colors.white), // ปุ่มกากบาทเพื่อยกเลิก
+          icon: const Icon(Icons.close, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -40,7 +148,7 @@ class _AddCardPageState extends State<AddCardPage> {
                     style: TextStyle(color: Colors.amber, fontSize: 16, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 15),
                   Center(
-                    child: _buildImageInput(), // Widget สำหรับเลือกรูปภาพ
+                    child: _buildImageInput(),
                   ),
 
                   const SizedBox(height: 30),
@@ -49,7 +157,7 @@ class _AddCardPageState extends State<AddCardPage> {
                   const Text("2. กรอกข้อความสำหรับหลังการ์ด", 
                     style: TextStyle(color: Colors.amber, fontSize: 16, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 15),
-                  _buildTextInput(), // Widget สำหรับกรอกข้อความ
+                  _buildTextInput(),
                 ],
               ),
             ),
@@ -63,15 +171,14 @@ class _AddCardPageState extends State<AddCardPage> {
               height: 55,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green[700], // สีเขียวเหมือน EditDeckPage
+                  backgroundColor: Colors.green[700],
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
-                onPressed: () {
-                  // Logic การรวมรูปและ Text เป็นการ์ด (รอทำต่อ)
-                  Navigator.pop(context);
-                },
-                child: const Text("เพิ่มการ์ดเข้าสำรับ", 
-                  style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                onPressed: (_isCreating || _isUploadingImage) ? null : _createCard,
+                child: (_isCreating || _isUploadingImage)
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text("เพิ่มการ์ดเข้าสำรับ", 
+                        style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
               ),
             ),
           ),
@@ -83,20 +190,19 @@ class _AddCardPageState extends State<AddCardPage> {
   // --- Widget พื้นที่เลือกรูปภาพ ---
   Widget _buildImageInput() {
     return GestureDetector(
-      onTap: () {
-        // Logic การเปิด Gallery (รอทำต่อ)
-        print("เลือกรูปจาก Gallery");
-      },
+      onTap: () => _uploadFrontImage(),
       child: AspectRatio(
-        aspectRatio: 0.65, // ทรงไพ่ทาโรต์
+        aspectRatio: 0.65,
         child: Container(
           decoration: BoxDecoration(
-            color: const Color(0xFF2A2D4E), // เทาเข้ม
+            color: const Color(0xFF2A2D4E),
             borderRadius: BorderRadius.circular(15),
             border: Border.all(color: Colors.white10),
+            image: _frontImageUrl != null
+                ? DecorationImage(image: NetworkImage(_frontImageUrl!), fit: BoxFit.cover)
+                : null,
           ),
-          child: _selectedImagePath == null
-              // สถานะว่างเปล่า
+          child: _frontImageUrl == null
               ? const Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -105,8 +211,7 @@ class _AddCardPageState extends State<AddCardPage> {
                     Text("แตะเพื่อเลือกรูปภาพ", style: TextStyle(color: Colors.white24)),
                   ],
                 )
-              // สถานะมีรูป (รอใส่ Image.file ในอนาคต)
-              : const Center(child: Text("รูปภาพที่เลือก", style: TextStyle(color: Colors.white))),
+              : null,
         ),
       ),
     );
@@ -116,20 +221,20 @@ class _AddCardPageState extends State<AddCardPage> {
   Widget _buildTextInput() {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF2A2D4E), // เทาเข้ม
+        color: const Color(0xFF2A2D4E),
         borderRadius: BorderRadius.circular(10),
       ),
       padding: const EdgeInsets.all(10),
       child: TextField(
         controller: _backTextController,
-        maxLines: 6, // กรอกได้หลายบรรทัดเหมือนรูปที่ 3
+        maxLines: 6,
         style: const TextStyle(color: Colors.white70),
-        maxLength: 300, // กำหนดจำนวนตัวอักษร
+        maxLength: 300,
         decoration: const InputDecoration(
           hintText: "กรอกคำทำนาย, ความหมาย, หรือผลลัพธ์ที่นี่...",
           hintStyle: TextStyle(color: Colors.white10),
-          border: InputBorder.none, // ลบเส้นขอบด้านล่าง
-          counterStyle: TextStyle(color: Colors.white24), // สีของตัวเลข character count
+          border: InputBorder.none,
+          counterStyle: TextStyle(color: Colors.white24),
         ),
       ),
     );

@@ -143,6 +143,8 @@ class _DeckDetailPageState extends State<DeckDetailPage> {
   }
 
   void _showReportDialog() {
+    final TextEditingController reportController = TextEditingController();
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -150,6 +152,7 @@ class _DeckDetailPageState extends State<DeckDetailPage> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text("รายงานความไม่เหมาะสม", style: TextStyle(color: Colors.white)),
         content: TextField(
+          controller: reportController,
           maxLines: 3,
           style: const TextStyle(color: Colors.white),
           decoration: InputDecoration(
@@ -161,10 +164,46 @@ class _DeckDetailPageState extends State<DeckDetailPage> {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("ยกเลิก", style: TextStyle(color: Colors.white38))),
+          TextButton(
+            onPressed: () => Navigator.pop(context), 
+            child: const Text("ยกเลิก", style: TextStyle(color: Colors.white38)),
+          ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-            onPressed: () => Navigator.pop(context),
+            onPressed: () async {
+              final reportText = reportController.text.trim();
+              
+              if (reportText.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('กรุณากรอกเหตุผล'), backgroundColor: Colors.redAccent),
+                );
+                return;
+              }
+
+              // บันทึก report ไป Firestore
+              try {
+                final deckId = widget.deckData?.id ?? '';
+                if (deckId.isEmpty) return;
+
+                await _firestore.collection('decks').doc(deckId).update({
+                  'reports': FieldValue.arrayUnion([reportText]),
+                });
+
+                if (mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('รายงานเสร็จสิ้น ขอบคุณค่ะ'), backgroundColor: Colors.green),
+                  );
+                }
+              } catch (e) {
+                print('Error submitting report: $e');
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('มีข้อผิดพลาด: $e'), backgroundColor: Colors.redAccent),
+                  );
+                }
+              }
+            },
             child: const Text("ยืนยัน", style: TextStyle(color: Colors.white)),
           ),
         ],
