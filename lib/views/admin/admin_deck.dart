@@ -81,6 +81,7 @@ class _AdminDeckState extends State<AdminDeck> {
                       deckId: deck.id,
                       cardCount: deck.cardCount.toString(),
                       deckName: deck.deckName,
+                      deckStatus: deck.deckStatus,
                       dateCreated:
                           '${deck.createdAt.day}/${deck.createdAt.month}/${deck.createdAt.year}',
                     );
@@ -99,6 +100,7 @@ class _AdminDeckState extends State<AdminDeck> {
     required String deckId,
     required String cardCount,
     required String deckName,
+    required String deckStatus,
     required String dateCreated,
   }) {
     return InkWell( // 1. ครอบด้วย InkWell เพื่อให้กดได้และมีเอฟเฟกต์ Ripple
@@ -112,6 +114,7 @@ class _AdminDeckState extends State<AdminDeck> {
             'deckId': deckId,
             'deckName': deckName,
             'cardCount': cardCount,
+            'deckStatus': deckStatus,
             // ... ข้อมูลอื่นๆ
           },
         );
@@ -147,6 +150,30 @@ class _AdminDeckState extends State<AdminDeck> {
                   Text(
                     "หมายเลขเด็ค : $deckId   จำนวนการ์ด : $cardCount ใบ",
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Text(
+                        "สถานะ : ",
+                        style: TextStyle(fontSize: 13),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: deckStatus == 'verified' ? Colors.green : Colors.orange,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          deckStatus == 'verified' ? '✓ Verified' : '⊙ Unverified',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 10),
                   Text("ชื่อสำรับ : $deckName", style: const TextStyle(fontSize: 15)),

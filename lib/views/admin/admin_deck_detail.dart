@@ -26,7 +26,7 @@ class _AdminDeckDetailPageState extends State<AdminDeckDetailPage> {
   Widget build(BuildContext context) {
     final Map<String, dynamic> args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
     bool isPublic = args['isPublic'] ?? false;
-    String status = args['status'] ?? "ไม่ระบุ";
+    String deckStatus = args['deckStatus'] ?? "unverified"; // ดึงจาก args
 
     return Scaffold(
       backgroundColor: const Color(0xFF13112B),
@@ -39,7 +39,7 @@ class _AdminDeckDetailPageState extends State<AdminDeckDetailPage> {
             physics: const BouncingScrollPhysics(),
             children: [
               // --- ไฟล์ที่ 1: รายละเอียดสำรับ ---
-              DeckInfoPart(args: args, isPublic: isPublic, status: status, onNext: () => _jumpToPage(1)),
+              DeckInfoPart(args: args, isPublic: isPublic, deckStatus: deckStatus, onNext: () => _jumpToPage(1)),
               // --- ไฟล์ที่ 2: รายการไพ่ในสำรับ ---
               DeckGridPart(args: args, onBack: () => _jumpToPage(0)),
             ],
@@ -116,14 +116,14 @@ class _AdminDeckDetailPageState extends State<AdminDeckDetailPage> {
 class DeckInfoPart extends StatelessWidget {
   final Map<String, dynamic> args;
   final bool isPublic;
-  final String status;
+  final String deckStatus;
   final VoidCallback onNext;
   
   const DeckInfoPart({
     super.key, 
     required this.args, 
     required this.isPublic, 
-    required this.status, 
+    required this.deckStatus, 
     required this.onNext
   });
 
@@ -171,9 +171,29 @@ class DeckInfoPart extends StatelessWidget {
                         const SizedBox(height: 20),
                         _infoRow("หมายเลขเด็ค", args['deckId'] ?? "-"),
                         _infoRow("จำนวนการ์ด", "${args['cardCount']} ใบ"),
-                        _infoRow("ผู้สร้าง", "ราชาคนุษยัยามดึก"),
+                        _infoRow("ผู้สร้าง", args['creatorUsername'] ?? "ไม่ระบุ"),
                         const SizedBox(height: 15),
-                        Text("สถานะ : $status", style: TextStyle(color: status == "เผยแพร่แล้ว" ? Colors.greenAccent : Colors.orangeAccent, fontWeight: FontWeight.bold, fontSize: 18))
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text("สถานะเด็ค :", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white)),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: deckStatus == 'verified' ? Colors.green : Colors.orange,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                deckStatus == 'verified' ? '✓ Verified' : '⊙ Unverified',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ])),
                     ],
                   ),
@@ -181,10 +201,95 @@ class DeckInfoPart extends StatelessWidget {
                   const Text("สถิติการเข้าชมและสุ่มไพ่", style: TextStyle(color: Colors.white60, fontSize: 16)),
                   const SizedBox(height: 25),
                   
-                  // แสดงวงกลมสถิติตามเงื่อนไขเดิม
-                  isPublic 
-                    ? const Center(child: CircleAvatar(radius: 70, backgroundColor: Colors.orangeAccent)) 
-                    : Container(height: 140, width: 140, decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), shape: BoxShape.circle), child: const Center(child: Text("ไม่มีข้อมูล\n(สำรับส่วนตัว)", textAlign: TextAlign.center, style: TextStyle(color: Colors.white24, fontSize: 12)))),
+                  // แสดงสถิติการเข้าชมและสุ่มไพ่
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      // จำนวนการเข้าชม
+                      Column(
+                        children: [
+                          Container(
+                            width: 120,
+                            height: 120,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.cyan, width: 3),
+                              color: Colors.cyan.withOpacity(0.1),
+                            ),
+                            child: Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    '${args['viewCount'] ?? 0}',
+                                    style: const TextStyle(
+                                      color: Colors.cyan,
+                                      fontSize: 28,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const Text(
+                                    'เข้าชม',
+                                    style: TextStyle(
+                                      color: Colors.cyan,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          const Text(
+                            'จำนวนการเข้าชม',
+                            style: TextStyle(color: Colors.white70, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                      
+                      // จำนวนการสุ่ม
+                      Column(
+                        children: [
+                          Container(
+                            width: 120,
+                            height: 120,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.lime, width: 3),
+                              color: Colors.lime.withOpacity(0.1),
+                            ),
+                            child: Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    '${args['drawCount'] ?? 0}',
+                                    style: const TextStyle(
+                                      color: Colors.lime,
+                                      fontSize: 28,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const Text(
+                                    'ครั้ง',
+                                    style: TextStyle(
+                                      color: Colors.lime,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          const Text(
+                            'จำนวนการสุ่ม',
+                            style: TextStyle(color: Colors.white70, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                   
                   const SizedBox(height: 60),
                   const Text("ไถขึ้นเพื่อดูไพ่ในสำรับ ↑", style: TextStyle(color: Colors.white24, fontSize: 12)),

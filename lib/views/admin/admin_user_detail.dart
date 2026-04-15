@@ -18,7 +18,7 @@ class AdminUserDetailPage extends StatefulWidget {
 
 class _AdminUserDetailPageState extends State<AdminUserDetailPage> {
   int deckCategoryIndex = 0;
-  final List<String> categories = ["สำรับที่รอการตรวจสอบ", "สำรับที่เผยแพร่สู่สาธารณะ", "สำรับส่วนตัว"];
+  final List<String> categories = ["สำรับที่รอตรวจสอบ", "สำรับที่ได้รับการยืนยันแล้ว"];
 
   @override
   Widget build(BuildContext context) {
@@ -104,14 +104,11 @@ class _AdminUserDetailPageState extends State<AdminUserDetailPage> {
   // ฟังก์ชันสำหรับแบ่งเด็คตามสถานะ
   List<DeckModel> _filterDecksByCategory(List<DeckModel> allDecks) {
     if (deckCategoryIndex == 0) {
-      // สำรับที่รอการตรวจสอบ
-      return allDecks.where((d) => d.status == 'pending').toList();
-    } else if (deckCategoryIndex == 1) {
-      // สำรับที่เผยแพร่สู่สาธารณะ
-      return allDecks.where((d) => d.status == 'approved').toList();
+      // สำรับที่รอตรวจสอบ
+      return allDecks.where((d) => d.deckStatus == 'unverified').toList();
     } else {
-      // สำรับส่วนตัว
-      return allDecks.where((d) => d.status == 'private').toList();
+      // สำรับที่ได้รับการยืนยันแล้ว
+      return allDecks.where((d) => d.deckStatus == 'verified').toList();
     }
   }
 
@@ -135,8 +132,8 @@ class _AdminUserDetailPageState extends State<AdminUserDetailPage> {
               ),
               Text(categories[deckCategoryIndex], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
               IconButton(
-                icon: Icon(Icons.arrow_forward_ios, color: deckCategoryIndex < 2 ? Colors.white : Colors.white24, size: 20), 
-                onPressed: deckCategoryIndex < 2 ? () => setState(() => deckCategoryIndex++) : null
+                icon: Icon(Icons.arrow_forward_ios, color: deckCategoryIndex < 1 ? Colors.white : Colors.white24, size: 20), 
+                onPressed: deckCategoryIndex < 1 ? () => setState(() => deckCategoryIndex++) : null
               ),
             ],
           ),
@@ -162,12 +159,15 @@ class _AdminUserDetailPageState extends State<AdminUserDetailPage> {
       onTap: () {
         Navigator.pushNamed(
           context, 
-          deck.status == 'pending' ? '/admin_verify_detail' : '/admin_deck_detail', 
+          deck.deckStatus == 'unverified' ? '/admin/verify_detail' : '/admin/deck_detail', 
           arguments: {
             'deckId': deck.id, 
             'deckName': deck.deckName, 
             'cardCount': deck.cardCount.toString(),
-            'status': deck.status
+            'deckStatus': deck.deckStatus,
+            'creatorUsername': deck.creatorUsername,
+            'viewCount': deck.viewCount,
+            'drawCount': deck.drawCount,
           }
         );
       },

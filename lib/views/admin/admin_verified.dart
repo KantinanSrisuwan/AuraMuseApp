@@ -42,8 +42,8 @@ class _AdminVerifiedState extends State<AdminVerified> {
           ),
           const SizedBox(height: 20),
           Expanded(
-            child: FutureBuilder(
-              future: FirestoreService.getDecksByStatus('pending'),
+            child: StreamBuilder(
+              stream: FirestoreService.getDecksStreamByStatus('unverified'),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
@@ -65,7 +65,7 @@ class _AdminVerifiedState extends State<AdminVerified> {
                 if (decks.isEmpty) {
                   return const Center(
                     child: Text(
-                      'ไม่มีสำรับที่รอการตรวจสอบ',
+                      'ไม่มีสำรับที่รอการตรวจสอบ (ทั้งหมดได้รับการยืนยันแล้ว)',
                       style: TextStyle(color: Colors.white70, fontSize: 16),
                     ),
                   );
@@ -79,6 +79,7 @@ class _AdminVerifiedState extends State<AdminVerified> {
                       deckId: deck.id,
                       cardCount: deck.cardCount.toString(),
                       deckName: deck.deckName,
+                      deckStatus: deck.deckStatus,
                       dateCreated:
                           '${deck.createdAt.day}/${deck.createdAt.month}/${deck.createdAt.year}',
                     );
@@ -97,16 +98,18 @@ class _AdminVerifiedState extends State<AdminVerified> {
     required String deckId,
     required String cardCount,
     required String deckName,
+    required String deckStatus,
     required String dateCreated,
   }) {
     return InkWell(
       onTap: () {
         Navigator.pushNamed(
           context,
-          AdminRoutes.adminVerifyDetail, // ตรวจสอบชื่อ Route ปลายทาง
+          AdminRoutes.adminVerifyDetail, // เข้าสู่หน้า deck detail ปกติเหมือน admin_deck
           arguments: {
             'deckId': deckId,
             'cardCount': cardCount,
+            'deckStatus': deckStatus,
             'deckName': deckName,
             'dateCreated': dateCreated,
           },

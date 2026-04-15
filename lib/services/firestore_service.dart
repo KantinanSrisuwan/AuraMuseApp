@@ -6,12 +6,12 @@ class DeckModel {
   final String deckName;
   final String coverImage;
   final String creatorId;
-  final String creatorUsername;
+  String creatorUsername; // เปลี่ยนจาก final เป็น mutable
   final int viewCount;
   final int drawCount;
   final DateTime createdAt;
   final int cardCount;
-  final String status;
+  final String deckStatus; // verified หรือ unverified
 
   DeckModel({
     required this.id,
@@ -23,7 +23,7 @@ class DeckModel {
     required this.drawCount,
     required this.createdAt,
     required this.cardCount,
-    this.status = 'pending',
+    this.deckStatus = 'unverified',
   });
 
   factory DeckModel.fromFirestore(DocumentSnapshot doc, int cardCount) {
@@ -38,7 +38,7 @@ class DeckModel {
       drawCount: data['draw_count'] ?? 0,
       createdAt: (data['created_at'] as Timestamp?)?.toDate() ?? DateTime.now(),
       cardCount: cardCount,
-      status: data['status'] ?? 'pending',
+      deckStatus: data['deck_status'] ?? 'unverified',
     );
   }
 }
@@ -46,6 +46,20 @@ class DeckModel {
 // Firestore Service
 class FirestoreService {
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
+
+  // ดึง username จาก user ID
+  static Future<String> getUsernameById(String userId) async {
+    try {
+      final doc = await _db.collection('users').doc(userId).get();
+      if (doc.exists) {
+        return doc.data()?['username'] ?? 'ไม่ระบุ';
+      }
+      return 'ไม่ระบุ';
+    } catch (e) {
+      print('Error fetching username: $e');
+      return 'ไม่ระบุ';
+    }
+  }
 
   // ดึง Decks ทั้งหมด พร้อมจำนวน Cards
   static Future<List<DeckModel>> getAllDecks() async {
@@ -62,6 +76,14 @@ class FirestoreService {
             .get();
 
         final deck = DeckModel.fromFirestore(doc, cardsSnapshot.docs.length);
+        
+        // ดึง username จาก creator ID
+        final creatorId = deck.creatorId;
+        if (creatorId.isNotEmpty) {
+          final creatorUsername = await getUsernameById(creatorId);
+          deck.creatorUsername = creatorUsername;
+        }
+        
         decks.add(deck);
       }
 
@@ -80,6 +102,9 @@ class FirestoreService {
           .where('creator_id', isEqualTo: creatorId)
           .get();
       List<DeckModel> decks = [];
+      
+      // ดึง username จาก creator ID
+      final creatorUsername = await getUsernameById(creatorId);
 
       for (var doc in snapshot.docs) {
         final cardsSnapshot = await _db
@@ -89,6 +114,8 @@ class FirestoreService {
             .get();
 
         final deck = DeckModel.fromFirestore(doc, cardsSnapshot.docs.length);
+        // override creatorUsername ด้วยข้อมูลจริงจาก users collection
+        deck.creatorUsername = creatorUsername;
         decks.add(deck);
       }
 
@@ -99,11 +126,12 @@ class FirestoreService {
     }
   }
 
-  // ดึง Decks ของ User ตามสถานะ
+  // ดึง Decks ตามสถานะ (verified, unverified)
+  static Future<List<DeckModel>> getDecksByStatus(String status) async {
     try {
       final snapshot = await _db
           .collection('decks')
-          .where('status', isEqualTo: status)
+          .where('deck_status', isEqualTo: status)
           .get();
       List<DeckModel> decks = [];
 
@@ -143,6 +171,28 @@ class FirestoreService {
     });
   }
 
+  // Stream สำหรับ Real-time Decks ตามสถานะ (verified, unverified)
+  static Stream<List<DeckModel>> getDecksStreamByStatus(String status) {
+    return _db
+        .collection('decks')
+        .where('deck_status', isEqualTo: status)
+        .snapshots()
+        .asyncMap((snapshot) async {
+      List<DeckModel> decks = [];
+      for (var doc in snapshot.docs) {
+        final cardsSnapshot = await _db
+            .collection('decks')
+            .doc(doc.id)
+            .collection('cards')
+            .get();
+
+        final deck = DeckModel.fromFirestore(doc, cardsSnapshot.docs.length);
+        decks.add(deck);
+      }
+      return decks;
+    });
+  }
+
   // ดึง Deck detail ตาม ID
   static Future<DeckModel?> getDeckById(String deckId) async {
     try {
@@ -152,7 +202,16 @@ class FirestoreService {
       final cardsSnapshot =
           await _db.collection('decks').doc(deckId).collection('cards').get();
 
-      return DeckModel.fromFirestore(doc, cardsSnapshot.docs.length);
+      final deck = DeckModel.fromFirestore(doc, cardsSnapshot.docs.length);
+      
+      // ดึง username จาก creator ID
+      final creatorId = deck.creatorId;
+      if (creatorId.isNotEmpty) {
+        final creatorUsername = await getUsernameById(creatorId);
+        deck.creatorUsername = creatorUsername;
+      }
+      
+      return deck;
     } catch (e) {
       print('Error fetching deck: $e');
       return null;
@@ -202,6 +261,19 @@ class FirestoreService {
       return true;
     } catch (e) {
       print('Error deleting deck: $e');
+      return false;
+    }
+  }
+
+  // อัปเดตสถานะของเด็ค (verified หรือ unverified)
+  static Future<bool> updateDeckStatus(String deckId, String newStatus) async {
+    try {
+      await _db.collection('decks').doc(deckId).update({
+        'deck_status': newStatus,
+      });
+      return true;
+    } catch (e) {
+      print('Error updating deck status: $e');
       return false;
     }
   }
@@ -359,3 +431,4 @@ class FirestoreService {
       return false;
     }
   }
+}
