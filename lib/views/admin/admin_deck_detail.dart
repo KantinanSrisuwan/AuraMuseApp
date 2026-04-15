@@ -24,7 +24,19 @@ class _AdminDeckDetailPageState extends State<AdminDeckDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final Map<String, dynamic> args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+    // ดึง arguments จาก route (อาจจะเป็น null หรือไม่มีครบทั้งหมด)
+    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>? ?? {};
+    
+    // ถ้าไม่มี deckId ใน arguments แสดง error
+    if ((args['deckId'] ?? '').isEmpty) {
+      return Scaffold(
+        backgroundColor: const Color(0xFF13112B),
+        body: Center(
+          child: Text('ไม่สามารถหา ID ของสำรับได้', style: TextStyle(color: Colors.white)),
+        ),
+      );
+    }
+
     bool isPublic = args['isPublic'] ?? false;
     String deckStatus = args['deckStatus'] ?? "unverified"; // ดึงจาก args
 
@@ -32,22 +44,60 @@ class _AdminDeckDetailPageState extends State<AdminDeckDetailPage> {
       backgroundColor: const Color(0xFF13112B),
       body: Stack(
         children: [
-          // Mechanic: เปลี่ยนหน้าแบบพลิกไฟล์ (ลื่นและลากง่าย)
-          PageView(
-            controller: _pageController,
-            scrollDirection: Axis.vertical,
-            physics: const BouncingScrollPhysics(),
-            children: [
-              // --- ไฟล์ที่ 1: รายละเอียดสำรับ ---
-              DeckInfoPart(args: args, isPublic: isPublic, deckStatus: deckStatus, onNext: () => _jumpToPage(1)),
-              // --- ไฟล์ที่ 2: รายการไพ่ในสำรับ ---
-              DeckGridPart(args: args, onBack: () => _jumpToPage(0)),
-            ],
-          ),
+          // ถ้า arguments ไม่มี creatorUsername ให้ดึงจาก Firestore
+          (args['creatorUsername'] ?? '').isEmpty
+            ? _buildDeckDetailWithFetch(args, isPublic, deckStatus)
+            : _buildDeckDetail(args, isPublic, deckStatus),
           // ปุ่ม Action ลอยคงที่ (เฉพาะของหน้า Deck)
           _buildBottomButtons(context),
         ],
       ),
+    );
+  }
+
+  // สร้าง Deck Detail โดยดึงข้อมูลจาก Firebase
+  Widget _buildDeckDetailWithFetch(Map<String, dynamic> args, bool isPublic, String deckStatus) {
+    return FutureBuilder<DeckModel?>(
+      future: FirestoreService.getDeckById(args['deckId']),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        }
+        
+        // ถ้าดึงมาได้ ให้รวมข้อมูลจาก Firestore กับ arguments
+        if (snapshot.hasData && snapshot.data != null) {
+          final deck = snapshot.data!;
+          final mergedArgs = {
+            ...args,
+            'deckName': deck.deckName,
+            'cardCount': deck.cardCount,
+            'creatorUsername': deck.creatorUsername,
+            'viewCount': deck.viewCount,
+            'drawCount': deck.drawCount,
+            'deckStatus': deck.deckStatus,
+          };
+          return _buildDeckDetail(mergedArgs, isPublic, deckStatus);
+        }
+
+        return Center(
+          child: Text('ไม่สามารถดึงข้อมูลสำรับได้', style: TextStyle(color: Colors.white)),
+        );
+      },
+    );
+  }
+
+  // สร้าง Deck Detail โดยใช้ข้อมูลจาก arguments
+  Widget _buildDeckDetail(Map<String, dynamic> args, bool isPublic, String deckStatus) {
+    return PageView(
+      controller: _pageController,
+      scrollDirection: Axis.vertical,
+      physics: const BouncingScrollPhysics(),
+      children: [
+        // --- ไฟล์ที่ 1: รายละเอียดสำรับ ---
+        DeckInfoPart(args: args, isPublic: isPublic, deckStatus: deckStatus, onNext: () => _jumpToPage(1)),
+        // --- ไฟล์ที่ 2: รายการไพ่ในสำรับ ---
+        DeckGridPart(args: args, onBack: () => _jumpToPage(0)),
+      ],
     );
   }
 
