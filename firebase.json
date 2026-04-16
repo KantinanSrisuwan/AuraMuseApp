@@ -1,1 +1,39 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"aura-muse-app","appId":"1:676725315504:android:999ca6fb7d18b9d255e875","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"aura-muse-app","configurations":{"android":"1:676725315504:android:999ca6fb7d18b9d255e875","ios":"1:676725315504:ios:4c7098e5d91bda9155e875","macos":"1:676725315504:ios:4c7098e5d91bda9155e875","web":"1:676725315504:web:4d9bd0caca27343255e875","windows":"1:676725315504:web:f97a62eb922d03c755e875"}}}}}}
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "aura-muse-app",
+          "appId": "1:676725315504:android:999ca6fb7d18b9d255e875",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "aura-muse-app",
+          "configurations": {
+            "android": "1:676725315504:android:999ca6fb7d18b9d255e875",
+            "ios": "1:676725315504:ios:4c7098e5d91bda9155e875",
+            "macos": "1:676725315504:ios:4c7098e5d91bda9155e875",
+            "web": "1:676725315504:web:4d9bd0caca27343255e875",
+            "windows": "1:676725315504:web:f97a62eb922d03c755e875"
+          }
+        }
+      }
+    }
+  },
+  "hosting": {
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  }
+}
