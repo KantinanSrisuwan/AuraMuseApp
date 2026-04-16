@@ -64,7 +64,7 @@ class _RegisterPageState extends State<RegisterPage> {
         'role': 'user', // ตั้งค่า role เป็น user ปกติ
         'created_at': FieldValue.serverTimestamp(),
         'favorites': [], // เก็บ Deck IDs ที่ถูกใจ
-        'quick_draws': [], // เก็บ Deck IDs ที่กดสายฟ้า
+        'quick_draws': ['sEt02g2NxoCrtH9M7lbQ'], // เก็บ Deck IDs ที่กดสายฟ้า
         'my_decks': [], // เก็บ Deck IDs ที่ user สร้าง
         'total_decks_created': 0, // จำนวน Deck ที่สร้าง
       });

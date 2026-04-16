@@ -86,10 +86,21 @@ class _DeckListPageState extends State<DeckListPage> {
                         itemBuilder: (context, index) {
                           final card = cards[index];
                           final frontImage = card['front_image'] ?? '';
+                          final cardId = card.id; // ดึง card ID จาก Firestore
                           
                           return GestureDetector(
                             onTap: () {
-                              Navigator.push(context, MaterialPageRoute(builder: (context) => DrawResultPage(deckId: deckId, deckName: deckName)));
+                              // ส่ง cardId ไปให้ DrawResultPage เพื่อแสดงไพ่ที่ถูกต้อง
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => DrawResultPage(
+                                    deckId: deckId,
+                                    deckName: deckName,
+                                    cardId: cardId, // ส่ง cardId ของไพ่ที่กดเข้า
+                                  ),
+                                ),
+                              );
                             },
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(10),

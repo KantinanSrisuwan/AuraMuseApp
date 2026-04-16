@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:image_cropper/image_cropper.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/utils/cloudinary_service.dart';
 import 'package:project_flutter/core/routes/app_routes.dart';
@@ -25,6 +26,7 @@ class _EditDeckPageState extends State<EditDeckPage> {
   
   String? _coverImageUrl; // URL ของรูปปกจาก Cloudinary
   bool _isUploadingCover = false;
+  String? _deckIdForCards; // deckId สำหรับการเพิ่มไพ่ (สร้างตั้งแต่แรก)
 
   @override
   void initState() {
@@ -35,19 +37,44 @@ class _EditDeckPageState extends State<EditDeckPage> {
   // ฟังก์ชันเริ่มต้นหน้า (เฉพาะชื่อและรูปปก)
   Future<void> _initializePage() async {
     try {
+      final user = _auth.currentUser;
+      if (user == null) return;
+
       if (widget.deckId != null) {
-        // โหลด deck ที่มีอยู่
+        // โหลด deck ที่มีอยู่แล้ว (editing mode)
         final deckDoc = await _firestore.collection('decks').doc(widget.deckId).get();
         if (deckDoc.exists) {
           _nameController.text = deckDoc['deck_name'] ?? '';
           
           setState(() {
             _coverImageUrl = deckDoc['cover_image'] ?? '';
+            _deckIdForCards = widget.deckId; // ใช้ deckId ที่ส่งมา
           });
         }
-      } else if (widget.initialData != null) {
-        // legacy support
-        _nameController.text = widget.initialData!['name'] ?? '';
+      } else {
+        // สร้าง deck ชั่วคราวทันที (create mode) เพื่อให้เพิ่มไพ่ได้เลย
+        final newDeckRef = _firestore.collection('decks').doc();
+        
+        await newDeckRef.set({
+          'deck_name': 'เด็คใหม่', // ชื่อเริ่มต้น
+          'creator_id': user.uid,
+          'creator_username': user.email?.split('@')[0] ?? 'Unknown',
+          'cover_image': '',
+          'view_count': 0,
+          'draw_count': 0,
+          'created_at': FieldValue.serverTimestamp(),
+          'deck_status': 'unverified',
+        });
+
+        // เพิ่ม deckId เข้า my_decks ของ user
+        await _firestore.collection('users').doc(user.uid).update({
+          'my_decks': FieldValue.arrayUnion([newDeckRef.id]),
+          'total_decks_created': FieldValue.increment(1),
+        });
+
+        setState(() {
+          _deckIdForCards = newDeckRef.id; // เก็บ deckId เพื่อใช้เพิ่มไพ่
+        });
       }
     } catch (e) {
       print('Error initializing page: $e');
@@ -56,32 +83,93 @@ class _EditDeckPageState extends State<EditDeckPage> {
 
   // Stream function สำหรับ real-time cards
   Stream<List<QueryDocumentSnapshot>> _getCardsStream() {
-    if (widget.deckId == null) {
+    if (_deckIdForCards == null || _deckIdForCards!.isEmpty) {
       return Stream.value([]);
     }
     
     return _firestore
         .collection('decks')
-        .doc(widget.deckId)
+        .doc(_deckIdForCards)
         .collection('cards')
         .snapshots()
         .map((snapshot) => snapshot.docs);
   }
 
-  // ฟังก์ชันอัพโหลดรูปปก
+  // ฟังก์ชันอัพโหลดรูปปกพร้อม crop
   Future<void> _uploadCoverImage() async {
     setState(() => _isUploadingCover = true);
     
     try {
+      // Step 1: เลือกรูป
       final XFile? imageFile = await CloudinaryService.pickImage();
       if (imageFile == null) {
         setState(() => _isUploadingCover = false);
         return;
       }
 
+      // Step 2: Crop รูป
+      final croppedFile = await ImageCropper().cropImage(
+        sourcePath: imageFile.path,
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'ตัดรูปปก',
+            toolbarColor: const Color(0xFF2A1B60),
+            toolbarWidgetColor: Colors.white,
+            backgroundColor: const Color(0xFF1E1E3A),
+            activeControlsWidgetColor: Colors.amber,
+            initAspectRatio: CropAspectRatioPreset.original,
+            lockAspectRatio: false,
+            cropGridColumnCount: 3,
+            cropGridRowCount: 3,
+            aspectRatioPresets: [
+              CropAspectRatioPreset.square,
+              CropAspectRatioPreset.ratio5x3,
+              CropAspectRatioPreset.ratio4x3,
+              CropAspectRatioPreset.ratio16x9,
+              CropAspectRatioPreset.ratio3x2,
+              CropAspectRatioPreset.original,
+            ],
+          ),
+          IOSUiSettings(
+            title: 'ตัดรูปปก',
+            cancelButtonTitle: 'ยกเลิก',
+            doneButtonTitle: 'ยืนยัน',
+            aspectRatioPresets: [
+              CropAspectRatioPreset.square,
+              CropAspectRatioPreset.ratio5x3,
+              CropAspectRatioPreset.ratio4x3,
+              CropAspectRatioPreset.ratio16x9,
+              CropAspectRatioPreset.ratio3x2,
+              CropAspectRatioPreset.original,
+            ],
+          ),
+          WebUiSettings(
+            context: context,
+            presentStyle: CropperPresentStyle.dialog,
+            boundary: const CroppieBoundary(
+              width: 520,
+              height: 520,
+            ),
+            viewPort: const CroppieViewPort(
+              width: 480,
+              height: 480,
+              type: 'square',
+            ),
+            enableZoom: true,
+            showZoomer: true,
+          ),
+        ],
+      );
+
+      if (croppedFile == null) {
+        setState(() => _isUploadingCover = false);
+        return;
+      }
+
       _showLoading('กำลังอัพโหลดรูปภาพ...');
 
-      final imageUrl = await CloudinaryService.uploadImage(imageFile);
+      // Step 3: อัพโหลด cropped image ไป Cloudinary
+      final imageUrl = await CloudinaryService.uploadImageFromPath(croppedFile.path);
       
       if (!mounted) return;
       Navigator.pop(context); // ปิด loading dialog
@@ -109,49 +197,29 @@ class _EditDeckPageState extends State<EditDeckPage> {
       return;
     }
 
+    // แสดงคำเตือนถ้าไม่มีรูปปก
+    if (_coverImageUrl == null || _coverImageUrl!.isEmpty) {
+      _showError('⚠️ กรุณาเพิ่มรูปปกสำรับด้วย');
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
-      final user = _auth.currentUser;
-      if (user == null) {
-        _showError('ไม่พบข้อมูลผู้ใช้');
+      if (_deckIdForCards == null) {
+        _showError('เกิดข้อผิดพลาดในการสร้างสำรับ');
         setState(() => _isLoading = false);
         return;
       }
 
-      if (widget.deckId == null) {
-        // สร้าง deck ใหม่
-        final newDeckRef = _firestore.collection('decks').doc();
-        
-        await newDeckRef.set({
-          'deck_name': _nameController.text.trim(),
-          'creator_id': user.uid,
-          'creator_username': user.email?.split('@')[0] ?? 'Unknown',
-          'cover_image': _coverImageUrl ?? '', // URL จาก Cloudinary
-          'view_count': 0,
-          'draw_count': 0,
-          'created_at': FieldValue.serverTimestamp(),
-          'deck_status': 'unverified', // ตั้งค่าเริ่มต้น
-        });
+      // Update deck ที่สร้างไว้แล้ว
+      await _firestore.collection('decks').doc(_deckIdForCards).update({
+        'deck_name': _nameController.text.trim(),
+        'cover_image': _coverImageUrl ?? '',
+      });
 
-        // เพิ่ม deckId เข้า my_decks ของ user
-        await _firestore.collection('users').doc(user.uid).update({
-          'my_decks': FieldValue.arrayUnion([newDeckRef.id]),
-          'total_decks_created': FieldValue.increment(1),
-        });
-
-        _showSuccess('สร้างสำรับใหม่สำเร็จ!');
-        if (mounted) Navigator.pop(context);
-      } else {
-        // แก้ไข deck ที่มีอยู่
-        await _firestore.collection('decks').doc(widget.deckId).update({
-          'deck_name': _nameController.text.trim(),
-          if (_coverImageUrl != null) 'cover_image': _coverImageUrl,
-        });
-
-        _showSuccess('บันทึกสำรับสำเร็จ!');
-        if (mounted) Navigator.pop(context);
-      }
+      _showSuccess('บันทึกสำรับสำเร็จ!');
+      if (mounted) Navigator.pop(context);
     } catch (e) {
       _showError('เกิดข้อผิดพลาด: $e');
     } finally {
@@ -189,6 +257,28 @@ class _EditDeckPageState extends State<EditDeckPage> {
     );
   }
 
+  // ฟังก์ชันลบ deck ที่ไม่ได้บันทึก (เมื่อ user กดย้อนกลับในโหมดสร้างใหม่)
+  Future<void> _deleteDeckIfNotSaved() async {
+    try {
+      // ลบเฉพาะ deck ที่สร้างใหม่ (create mode: widget.deckId == null)
+      if (widget.deckId == null && _deckIdForCards != null) {
+        final user = _auth.currentUser;
+        if (user == null) return;
+
+        // ลบ deck document
+        await _firestore.collection('decks').doc(_deckIdForCards).delete();
+
+        // ลบ deckId ออกจาก my_decks ของ user
+        await _firestore.collection('users').doc(user.uid).update({
+          'my_decks': FieldValue.arrayRemove([_deckIdForCards]),
+          'total_decks_created': FieldValue.increment(-1),
+        });
+      }
+    } catch (e) {
+      print('Error deleting deck: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -198,7 +288,11 @@ class _EditDeckPageState extends State<EditDeckPage> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () async {
+            // ลบ deck ที่ไม่ได้บันทึกเมื่อ user กดย้อนกลับในโหมดสร้างใหม่
+            await _deleteDeckIfNotSaved();
+            if (mounted) Navigator.pop(context);
+          },
         ),
       ),
       body: FutureBuilder<void>(
@@ -277,7 +371,10 @@ class _EditDeckPageState extends State<EditDeckPage> {
                             ),
                             onChanged: (val) => setState(() {}),
                           ),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 12),
+                          const Text("💡 ขนาดรูปปกที่แนะนำ: 800x1200 px", 
+                            style: TextStyle(color: Colors.amber, fontSize: 11)),
+                          const SizedBox(height: 8),
                           StreamBuilder<List<QueryDocumentSnapshot>>(
                             stream: _getCardsStream(),
                             builder: (context, snapshot) {
@@ -316,11 +413,11 @@ class _EditDeckPageState extends State<EditDeckPage> {
                           if (index == cards.length) {
                             return _buildSquareButton(
                               onTap: () {
-                                if (widget.deckId == null) {
-                                  _showError('กรุณาบันทึกสำรับก่อนเพิ่มการ์ด');
+                                if (_deckIdForCards == null || _deckIdForCards!.isEmpty) {
+                                  _showError('เกิดข้อผิดพลาดในการสร้างสำรับ');
                                   return;
                                 }
-                                Navigator.pushNamed(context, AppRoutes.addCard, arguments: widget.deckId);
+                                Navigator.pushNamed(context, AppRoutes.addCard, arguments: _deckIdForCards);
                               },
                             );
                           }

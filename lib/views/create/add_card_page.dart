@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:image_cropper/image_cropper.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/utils/cloudinary_service.dart';
 
@@ -19,20 +20,81 @@ class _AddCardPageState extends State<AddCardPage> {
   bool _isUploadingImage = false;
   bool _isCreating = false;
 
-  // ฟังก์ชันอัพโหลดรูปหน้าการ์ด
+  // ฟังก์ชันอัพโหลดรูปหน้าการ์ดพร้อม crop
   Future<void> _uploadFrontImage() async {
     setState(() => _isUploadingImage = true);
     
     try {
+      // Step 1: เลือกรูป
       final imageFile = await CloudinaryService.pickImage();
       if (imageFile == null) {
         setState(() => _isUploadingImage = false);
         return;
       }
 
+      // Step 2: Crop รูป
+      final croppedFile = await ImageCropper().cropImage(
+        sourcePath: imageFile.path,
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'ตัดรูป',
+            toolbarColor: const Color(0xFF2A1B60),
+            toolbarWidgetColor: Colors.white,
+            backgroundColor: const Color(0xFF1E1E3A),
+            activeControlsWidgetColor: Colors.amber,
+            initAspectRatio: CropAspectRatioPreset.original,
+            lockAspectRatio: false,
+            cropGridColumnCount: 3,
+            cropGridRowCount: 3,
+            aspectRatioPresets: [
+              CropAspectRatioPreset.square,
+              CropAspectRatioPreset.ratio3x2,
+              CropAspectRatioPreset.ratio4x3,
+              CropAspectRatioPreset.ratio16x9,
+              CropAspectRatioPreset.ratio5x3,
+              CropAspectRatioPreset.original,
+            ],
+          ),
+          IOSUiSettings(
+            title: 'ตัดรูป',
+            cancelButtonTitle: 'ยกเลิก',
+            doneButtonTitle: 'ยืนยัน',
+            aspectRatioPresets: [
+              CropAspectRatioPreset.square,
+              CropAspectRatioPreset.ratio3x2,
+              CropAspectRatioPreset.ratio4x3,
+              CropAspectRatioPreset.ratio16x9,
+              CropAspectRatioPreset.ratio5x3,
+              CropAspectRatioPreset.original,
+            ],
+          ),
+          WebUiSettings(
+            context: context,
+            presentStyle: CropperPresentStyle.dialog,
+            boundary: const CroppieBoundary(
+              width: 520,
+              height: 520,
+            ),
+            viewPort: const CroppieViewPort(
+              width: 480,
+              height: 480,
+              type: 'square',
+            ),
+            enableZoom: true,
+            showZoomer: true,
+          ),
+        ],
+      );
+
+      if (croppedFile == null) {
+        setState(() => _isUploadingImage = false);
+        return;
+      }
+
       _showLoadingDialog('กำลังอัพโหลดรูปภาพ...');
 
-      final imageUrl = await CloudinaryService.uploadImage(imageFile);
+      // Step 3: อัพโหลด cropped image ไป Cloudinary
+      final imageUrl = await CloudinaryService.uploadImageFromPath(croppedFile.path);
       
       if (!mounted) return;
       Navigator.pop(context); // ปิด loading dialog
@@ -150,6 +212,11 @@ class _AddCardPageState extends State<AddCardPage> {
                   Center(
                     child: _buildImageInput(),
                   ),
+                  const SizedBox(height: 8),
+                  const Center(
+                    child: Text("💡 ขนาดรูปที่แนะนำ: 800x1200 px", 
+                      style: TextStyle(color: Colors.amber, fontSize: 12)),
+                  ),
 
                   const SizedBox(height: 30),
 
@@ -208,10 +275,18 @@ class _AddCardPageState extends State<AddCardPage> {
                   children: [
                     Icon(Icons.photo_library_outlined, size: 60, color: Colors.white24),
                     SizedBox(height: 10),
-                    Text("แตะเพื่อเลือกรูปภาพ", style: TextStyle(color: Colors.white24)),
+                    Text("แตะเพื่อเลือกและตัดรูปภาพ", style: TextStyle(color: Colors.white24)),
                   ],
                 )
-              : null,
+              : Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Container(
+                      color: Colors.black26,
+                    ),
+                    Icon(Icons.edit, size: 40, color: Colors.white70),
+                  ],
+                ),
         ),
       ),
     );

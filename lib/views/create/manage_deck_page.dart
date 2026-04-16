@@ -108,7 +108,17 @@ class _ManageDeckPageState extends State<ManageDeckPage> {
 
   Widget _buildAddBtn(BuildContext context) {
     return GestureDetector(
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const EditDeckPage())),
+      onTap: () async {
+        // รอให้ EditDeckPage เสร็จ (สร้าง deck ใหม่โดยไม่ระบุ deckId)
+        await Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const EditDeckPage()),
+        );
+        // หลังจากกลับมา ให้ setState เพื่อ rebuild Stream
+        if (mounted) {
+          setState(() {});
+        }
+      },
       child: Container(
         decoration: BoxDecoration(
           border: Border.all(color: Colors.white24),
@@ -124,10 +134,17 @@ class _ManageDeckPageState extends State<ManageDeckPage> {
     final String deckId = deck.id;
 
     return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => EditDeckPage(deckId: deckId)),
-      ),
+      onTap: () async {
+        // รอให้ EditDeckPage เสร็จ
+        await Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => EditDeckPage(deckId: deckId)),
+        );
+        // หลังจากกลับมา ให้ setState เพื่อ rebuild Stream
+        if (mounted) {
+          setState(() {});
+        }
+      },
       child: ClipRRect(
         borderRadius: BorderRadius.circular(10),
         child: coverImage.isNotEmpty

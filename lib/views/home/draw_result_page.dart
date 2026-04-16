@@ -8,7 +8,13 @@ import '../widgets/flippable_card.dart';
 class DrawResultPage extends StatefulWidget {
   final String deckId;
   final String deckName;
-  const DrawResultPage({super.key, required this.deckId, required this.deckName});
+  final String? cardId; // Optional: specific card to display
+  const DrawResultPage({
+    super.key,
+    required this.deckId,
+    required this.deckName,
+    this.cardId, // If provided, show this specific card. If not, show random
+  });
 
   @override
   State<DrawResultPage> createState() => _DrawResultPageState();
@@ -46,31 +52,52 @@ class _DrawResultPageState extends State<DrawResultPage> {
     }
   }
 
-  // ฟังก์ชันดึงไพ่แบบสุ่มจาก sub-collection
+  // ฟังก์ชันดึงไพ่แบบสุ่มจาก sub-collection (หรือไพ่ที่ระบุ หากมี cardId)
   Future<void> _fetchRandomCard() async {
     try {
-      // ดึงทุกไพ่จาก sub-collection cards
-      QuerySnapshot cardsSnapshot = await _firestore
-          .collection('decks')
-          .doc(widget.deckId)
-          .collection('cards')
-          .get();
-      
-      if (!mounted) return;
+      late DocumentSnapshot cardSnapshot;
 
-      if (cardsSnapshot.docs.isEmpty) {
+      // ถ้ามี cardId ให้ดึงไพ่นั้นโดยตรง
+      if (widget.cardId != null && widget.cardId!.isNotEmpty) {
+        cardSnapshot = await _firestore
+            .collection('decks')
+            .doc(widget.deckId)
+            .collection('cards')
+            .doc(widget.cardId!)
+            .get();
+      } else {
+        // ถ้าไม่มี cardId ให้สุ่มไพ่แบบปกติ
+        QuerySnapshot cardsSnapshot = await _firestore
+            .collection('decks')
+            .doc(widget.deckId)
+            .collection('cards')
+            .get();
+        
+        if (!mounted) return;
+
+        if (cardsSnapshot.docs.isEmpty) {
+          setState(() {
+            _cardText = 'ไม่พบไพ่ในเด็คนี้';
+          });
+          return;
+        }
+
+        // สุ่มเลือกไพ่หนึ่งใบ
+        cardSnapshot = cardsSnapshot.docs[Random().nextInt(cardsSnapshot.docs.length)];
+      }
+
+      if (!mounted) return;
+      
+      if (!cardSnapshot.exists) {
         setState(() {
-          _cardText = 'ไม่พบไพ่ในเด็คนี้';
+          _cardText = 'ไม่พบไพ่นี้';
         });
         return;
       }
 
-      // สุ่มเลือกไพ่หนึ่งใบ
-      final randomCard = cardsSnapshot.docs[Random().nextInt(cardsSnapshot.docs.length)];
-      
       setState(() {
-        _imageUrl = randomCard['front_image'] ?? '';
-        _cardText = randomCard['back_text'] ?? 'ไม่มีข้อมูล';
+        _imageUrl = cardSnapshot['front_image'] ?? '';
+        _cardText = cardSnapshot['back_text'] ?? 'ไม่มีข้อมูล';
       });
 
       // เพิ่ม draw_count เฉพาะครั้งแรกเมื่อเข้าหน้า
@@ -85,7 +112,7 @@ class _DrawResultPageState extends State<DrawResultPage> {
       }
     } catch (e) {
       if (!mounted) return;
-      print('Error fetching random card: $e');
+      print('Error fetching card: $e');
       setState(() {
         _cardText = 'เกิดข้อผิดพลาด: $e';
       });
@@ -104,7 +131,10 @@ class _DrawResultPageState extends State<DrawResultPage> {
 
       setState(() {
         // ดึงสีทั้งหมดที่หาได้มาใส่ใน List
-        _extractedPalette = generator.colors.toList();
+        List<Color> colors = generator.colors.toList();
+        // เรียงสีจากสว่างที่สุดไปมืดที่สุด
+        colors.sort((a, b) => b.computeLuminance().compareTo(a.computeLuminance()));
+        _extractedPalette = colors;
       });
     } catch (e) {
       // กรณีโหลดรูปไม่ขึ้น ให้ใช้สีเทาเป็นค่าเริ่มต้น
@@ -150,6 +180,23 @@ class _DrawResultPageState extends State<DrawResultPage> {
 
   // ส่วนของการแสดงหน้าไพ่
   Widget _buildFrontSide() {
+    // ถ้าไม่พบไพ่ให้แสดงข้อความแทน
+    if (_cardText == 'ไม่พบไพ่ในเด็คนี้' || _cardText == 'ไม่พบไพ่นี้') {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: Container(
+          color: Colors.grey[800],
+          child: Center(
+            child: Text(
+              _cardText,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white70, fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ),
+      );
+    }
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(24),
       child: _imageUrl.isEmpty
