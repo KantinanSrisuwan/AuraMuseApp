@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'deck_detail_page.dart';
 import 'deck_list_page.dart';
 
@@ -25,7 +24,7 @@ class _DeckViewWrapperState extends State<DeckViewWrapper> {
       body: PageView(
         controller: _pageController,
         scrollDirection: Axis.vertical,
-        physics: const PageScrollPhysics(parent: BouncingScrollPhysics()), 
+        physics: const PageScrollPhysics(parent: BouncingScrollPhysics()),
         children: [
           DeckDetailPage(deckData: deckData),
           DeckListPage(deckData: deckData),

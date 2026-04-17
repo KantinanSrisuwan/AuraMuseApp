@@ -44,10 +44,21 @@ class AppRoutes {
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
       case addCard:
-        final deckId = settings.arguments as String;
-        return MaterialPageRoute(
-          builder: (context) => AddCardPage(deckId: deckId),
-        );
+        if (settings.arguments is Map) {
+          final args = settings.arguments as Map<String, dynamic>;
+          return MaterialPageRoute(
+            builder: (context) => AddCardPage(
+              deckId: args['deckId'],
+              cardId: args['cardId'],
+              initialData: args['initialData'],
+            ),
+          );
+        } else {
+          final deckId = settings.arguments as String;
+          return MaterialPageRoute(
+            builder: (context) => AddCardPage(deckId: deckId),
+          );
+        }
       default:
         return MaterialPageRoute(builder: (context) => const LoginPage());
     }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:palette_generator/palette_generator.dart'; // ตัวดึงสีจากรูป
 import 'dart:math';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/constants/app_colors.dart';
 import '../widgets/flippable_card.dart';
 
@@ -148,30 +149,44 @@ class _DrawResultPageState extends State<DrawResultPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.backgroundNavy,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
+      extendBodyBehindAppBar: true,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: AppColors.cosmicGradient,
         ),
-        title: Text(
-          "ผลลัพธ์จาก ${widget.deckName}",
-          style: const TextStyle(color: Colors.white70, fontSize: 16),
-        ),
-      ),
-      body: Center(
-        child: Hero(
-          tag: 'deck_card_${widget.deckId}',
-          child: FlippableCard(
-            width: MediaQuery.of(context).size.width * 0.85,
-            height: MediaQuery.of(context).size.height * 0.75,
-            backText: _cardText,
-            palette: _extractedPalette.isEmpty 
-                ? [const Color(0xFF1E2140)]
-                : _extractedPalette,
-            front: _buildFrontSide(),
+        child: SafeArea(
+          child: Column(
+            children: [
+              AppBar(
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                leading: IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+                  onPressed: () => Navigator.pop(context),
+                ),
+                title: Text(
+                  "ผลลัพธ์จาก ${widget.deckName}",
+                  style: const TextStyle(color: AppColors.cosmicCyan, fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1),
+                ),
+                centerTitle: true,
+              ).animate().fadeIn(duration: 400.ms),
+              Expanded(
+                child: Center(
+                  child: Hero(
+                    tag: 'deck_card_${widget.deckId}',
+                    child: FlippableCard(
+                      width: MediaQuery.of(context).size.width * 0.85,
+                      height: MediaQuery.of(context).size.height * 0.75,
+                      backText: _cardText,
+                      palette: _extractedPalette.isEmpty 
+                          ? [AppColors.cosmicPurple]
+                          : _extractedPalette,
+                      front: _buildFrontSide(),
+                    ),
+                  ),
+                ).animate().scale(curve: Curves.easeOutQuart),
+              ),
+            ],
           ),
         ),
       ),
@@ -182,52 +197,62 @@ class _DrawResultPageState extends State<DrawResultPage> {
   Widget _buildFrontSide() {
     // ถ้าไม่พบไพ่ให้แสดงข้อความแทน
     if (_cardText == 'ไม่พบไพ่ในเด็คนี้' || _cardText == 'ไม่พบไพ่นี้') {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: Container(
-          color: Colors.grey[800],
-          child: Center(
-            child: Text(
-              _cardText,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.white70, fontSize: 18, fontWeight: FontWeight.bold),
-            ),
+      return Container(
+        decoration: AppColors.glassDecoration(radius: 24),
+        child: Center(
+          child: Text(
+            _cardText,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: AppColors.textWhiteMuted, fontSize: 18, fontWeight: FontWeight.bold),
           ),
         ),
       );
     }
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(24),
-      child: _imageUrl.isEmpty
-          ? Container(
-              color: Colors.grey[800],
-              child: const Center(
-                child: CircularProgressIndicator(color: Colors.amber),
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.cosmicCyan.withOpacity(0.3),
+            blurRadius: 30,
+            spreadRadius: 2,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: _imageUrl.isEmpty
+            ? Container(
+                decoration: AppColors.glassDecoration(radius: 24),
+                child: const Center(
+                  child: CircularProgressIndicator(color: AppColors.cosmicCyan),
+                ),
+              )
+            : Image.network(
+                _imageUrl,
+                fit: BoxFit.cover,
+                // เพิ่ม Loading สวยๆ ระหว่างรอรูป
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Container(
+                    decoration: AppColors.glassDecoration(radius: 24),
+                    child: const Center(
+                      child: CircularProgressIndicator(color: AppColors.cosmicCyan),
+                    ),
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    decoration: AppColors.glassDecoration(radius: 24),
+                    child: const Center(
+                      child: Icon(Icons.error_outline, color: Colors.redAccent, size: 50),
+                    ),
+                  );
+                },
               ),
-            )
-          : Image.network(
-              _imageUrl,
-              fit: BoxFit.cover,
-              // เพิ่ม Loading สวยๆ ระหว่างรอรูป
-              loadingBuilder: (context, child, loadingProgress) {
-                if (loadingProgress == null) return child;
-                return Container(
-                  color: Colors.grey[800],
-                  child: const Center(
-                    child: CircularProgressIndicator(color: Colors.amber),
-                  ),
-                );
-              },
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  color: Colors.grey[800],
-                  child: const Center(
-                    child: Icon(Icons.error, color: Colors.white, size: 50),
-                  ),
-                );
-              },
-            ),
+      ),
     );
   }
 }

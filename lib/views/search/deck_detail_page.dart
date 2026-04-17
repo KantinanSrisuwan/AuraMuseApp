@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/constants/app_colors.dart';
 import '../home/draw_result_page.dart';
 
@@ -128,13 +129,13 @@ class _DeckDetailPageState extends State<DeckDetailPage> {
     try {
       final deckId = widget.deckData?.id ?? '';
       if (deckId.isEmpty) return 0;
-      
+
       QuerySnapshot snapshot = await FirebaseFirestore.instance
           .collection('decks')
           .doc(deckId)
           .collection('cards')
           .get();
-      
+
       return snapshot.docs.length;
     } catch (e) {
       print('Error getting card count: $e');
@@ -144,13 +145,16 @@ class _DeckDetailPageState extends State<DeckDetailPage> {
 
   void _showReportDialog() {
     final TextEditingController reportController = TextEditingController();
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF2A2D4E),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text("รายงานความไม่เหมาะสม", style: TextStyle(color: Colors.white)),
+        title: const Text(
+          "รายงานความไม่เหมาะสม",
+          style: TextStyle(color: Colors.white),
+        ),
         content: TextField(
           controller: reportController,
           maxLines: 3,
@@ -160,22 +164,31 @@ class _DeckDetailPageState extends State<DeckDetailPage> {
             hintStyle: const TextStyle(color: Colors.white24),
             filled: true,
             fillColor: Colors.black26,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
           ),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context), 
-            child: const Text("ยกเลิก", style: TextStyle(color: Colors.white38)),
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              "ยกเลิก",
+              style: TextStyle(color: Colors.white38),
+            ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
             onPressed: () async {
               final reportText = reportController.text.trim();
-              
+
               if (reportText.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('กรุณากรอกเหตุผล'), backgroundColor: Colors.redAccent),
+                  const SnackBar(
+                    content: Text('กรุณากรอกเหตุผล'),
+                    backgroundColor: Colors.redAccent,
+                  ),
                 );
                 return;
               }
@@ -192,14 +205,20 @@ class _DeckDetailPageState extends State<DeckDetailPage> {
                 if (mounted) {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('รายงานเสร็จสิ้น ขอบคุณค่ะ'), backgroundColor: Colors.green),
+                    const SnackBar(
+                      content: Text('รายงานเสร็จสิ้น ขอบคุณค่ะ'),
+                      backgroundColor: Colors.green,
+                    ),
                   );
                 }
               } catch (e) {
                 print('Error submitting report: $e');
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('มีข้อผิดพลาด: $e'), backgroundColor: Colors.redAccent),
+                    SnackBar(
+                      content: Text('มีข้อผิดพลาด: $e'),
+                      backgroundColor: Colors.redAccent,
+                    ),
                   );
                 }
               }
@@ -214,69 +233,142 @@ class _DeckDetailPageState extends State<DeckDetailPage> {
   @override
   Widget build(BuildContext context) {
     final String deckName = widget.deckData?['deck_name'] ?? "สำรับไพ่";
-    final String deckImage = widget.deckData?['cover_image'] ?? 'https://picsum.photos/seed/deck/400/600';
+    final String deckImage =
+        widget.deckData?['cover_image'] ??
+        'https://picsum.photos/seed/deck/400/600';
     final String deckId = widget.deckData?.id ?? '';
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundNavy,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: () => Navigator.pop(context)),
-        actions: [
-          IconButton(onPressed: _toggleFavorite, 
-            icon: Icon(_isFavorite ? Icons.favorite : Icons.favorite_border, color: _isFavorite ? Colors.redAccent : Colors.white)),
-          IconButton(onPressed: _toggleQuickDraw, 
-            icon: Icon(_isQuickDraw ? Icons.bolt : Icons.bolt_outlined, color: _isQuickDraw ? Colors.yellowAccent : Colors.white)),
-          IconButton(icon: const Icon(Icons.new_releases_outlined, color: Colors.white), onPressed: _showReportDialog),
-        ],
-      ),
-      body: Column(
-        children: [
-          const SizedBox(height: 10),
-          const Text("กดที่ไพ่เพื่อเริ่มสุ่ม!", style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w200)),
-          const SizedBox(height: 20),
-          Expanded(
-            child: Center(
-              child: GestureDetector(
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => DrawResultPage(deckId: deckId, deckName: deckName))),
-                behavior: HitTestBehavior.translucent, 
-                child: Hero(
-                  tag: 'deck_hero_$deckId',
-                  child: Container(
-                    width: MediaQuery.of(context).size.width * 0.75,
+      extendBodyBehindAppBar: true,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: AppColors.cosmicGradient,
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              AppBar(
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                leading: IconButton(
+                  icon: Container(
+                    padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: const [BoxShadow(color: Colors.black45, blurRadius: 25, offset: Offset(0, 10))],
-                      image: DecorationImage(image: NetworkImage(deckImage), fit: BoxFit.cover),
+                      color: Colors.black26,
+                      shape: BoxShape.circle,
                     ),
+                    child: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                ),
+                actions: [
+                  IconButton(
+                    onPressed: _toggleFavorite,
+                    icon: Icon(
+                      _isFavorite ? Icons.favorite : Icons.favorite_border,
+                      color: _isFavorite ? Colors.redAccent : Colors.white,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: _toggleQuickDraw,
+                    icon: Icon(
+                      _isQuickDraw ? Icons.bolt : Icons.bolt_outlined,
+                      color: _isQuickDraw ? Colors.yellowAccent : Colors.white,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.new_releases_outlined, color: Colors.white),
+                    onPressed: _showReportDialog,
+                  ),
+                ],
+              ).animate().fadeIn(duration: 400.ms),
+              const SizedBox(height: 10),
+              const Text(
+                "กดที่ไพ่เพื่อเริ่มสุ่ม!",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w200,
+                  letterSpacing: 1,
+                ),
+              ).animate().fadeIn(duration: 600.ms).slideY(begin: -0.2),
+              const SizedBox(height: 20),
+              Expanded(
+                child: Center(
+                  child: GestureDetector(
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            DrawResultPage(deckId: deckId, deckName: deckName),
+                      ),
+                    ),
+                    behavior: HitTestBehavior.translucent,
+                    child: Hero(
+                      tag: 'deck_hero_$deckId',
+                      child: Container(
+                        width: MediaQuery.of(context).size.width * 0.75,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(color: AppColors.cosmicCyan.withOpacity(0.3), width: 2),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.cosmicPurple.withOpacity(0.6),
+                              blurRadius: 40,
+                              spreadRadius: -5,
+                              offset: const Offset(0, 10),
+                            ),
+                          ],
+                          image: DecorationImage(
+                            image: NetworkImage(deckImage),
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ),
+                    ).animate(onPlay: (controller) => controller.repeat(reverse: true))
+                     .moveY(begin: -5, end: 5, duration: 2.seconds, curve: Curves.easeInOutSine),
                   ),
                 ),
               ),
-            ),
-          ),
-          const SizedBox(height: 25),
-          Text(deckName, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          FutureBuilder<int>(
-            future: _cardCountFuture,
-            builder: (context, snapshot) {
-              final cardCount = snapshot.data ?? 0;
-              return Text(
-                "จำนวนไพ่ในสำรับ : $cardCount ใบ", 
-                style: const TextStyle(color: Colors.white70, fontSize: 16)
-              );
-            },
-          ),
-          const SizedBox(height: 30),
-          const Column(
-            children: [
-              Text("เลื่อนขึ้นเพื่อดูไพ่ในสำรับ", style: TextStyle(color: Colors.white12, fontSize: 12)),
-              Icon(Icons.keyboard_arrow_up, color: Colors.white12),
-              SizedBox(height: 20),
+              const SizedBox(height: 35),
+              Text(
+                deckName,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 28,
+                  letterSpacing: 1,
+                  fontWeight: FontWeight.bold,
+                ),
+              ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.2),
+              const SizedBox(height: 8),
+              FutureBuilder<int>(
+                future: _cardCountFuture,
+                builder: (context, snapshot) {
+                  final cardCount = snapshot.data ?? 0;
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: AppColors.glassDecoration(radius: 20),
+                    child: Text(
+                      "จำนวนไพ่ในสำรับ : $cardCount ใบ",
+                      style: const TextStyle(color: AppColors.cosmicCyan, fontSize: 14, fontWeight: FontWeight.bold),
+                    ),
+                  ).animate().fadeIn(delay: 300.ms).scale();
+                },
+              ),
+              const SizedBox(height: 40),
+              const Column(
+                children: [
+                  Text(
+                    "เลื่อนขึ้นเพื่อดูไพ่ในสำรับ",
+                    style: TextStyle(color: Colors.white38, fontSize: 12),
+                  ),
+                  Icon(Icons.keyboard_arrow_up, color: Colors.white38),
+                  SizedBox(height: 20),
+                ],
+              ).animate().fadeIn(delay: 500.ms),
             ],
           ),
-        ],
+        ),
       ),
     );
   }

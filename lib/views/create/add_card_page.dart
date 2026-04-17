@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_cropper/image_cropper.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/utils/cloudinary_service.dart';
 
 class AddCardPage extends StatefulWidget {
   final String deckId;
-  const AddCardPage({super.key, required this.deckId});
+  final String? cardId;
+  final Map<String, dynamic>? initialData;
+  const AddCardPage({super.key, required this.deckId, this.cardId, this.initialData});
 
   @override
   State<AddCardPage> createState() => _AddCardPageState();
@@ -19,6 +22,15 @@ class _AddCardPageState extends State<AddCardPage> {
   String? _frontImageUrl; // URL ของรูปหน้าการ์ดจาก Cloudinary
   bool _isUploadingImage = false;
   bool _isCreating = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.cardId != null && widget.initialData != null) {
+      _backTextController.text = widget.initialData!['back_text'] ?? '';
+      _frontImageUrl = widget.initialData!['front_image'];
+    }
+  }
 
   // ฟังก์ชันอัพโหลดรูปหน้าการ์ดพร้อม crop
   Future<void> _uploadFrontImage() async {
@@ -70,18 +82,6 @@ class _AddCardPageState extends State<AddCardPage> {
           ),
           WebUiSettings(
             context: context,
-            presentStyle: CropperPresentStyle.dialog,
-            boundary: const CroppieBoundary(
-              width: 520,
-              height: 520,
-            ),
-            viewPort: const CroppieViewPort(
-              width: 480,
-              height: 480,
-              type: 'square',
-            ),
-            enableZoom: true,
-            showZoomer: true,
           ),
         ],
       );
@@ -94,7 +94,8 @@ class _AddCardPageState extends State<AddCardPage> {
       _showLoadingDialog('กำลังอัพโหลดรูปภาพ...');
 
       // Step 3: อัพโหลด cropped image ไป Cloudinary
-      final imageUrl = await CloudinaryService.uploadImageFromPath(croppedFile.path);
+      final bytes = await croppedFile.readAsBytes();
+      final imageUrl = await CloudinaryService.uploadImageFromBytes(bytes, 'cropped_image.png');
       
       if (!mounted) return;
       Navigator.pop(context); // ปิด loading dialog
@@ -115,8 +116,8 @@ class _AddCardPageState extends State<AddCardPage> {
     }
   }
 
-  // ฟังก์ชันสร้างการ์ดใหม่ใน Firebase
-  Future<void> _createCard() async {
+  // ฟังก์ชันสร้างการ์ดใหม่หรือแก้ไขใน Firebase
+  Future<void> _saveCard() async {
     if (_frontImageUrl == null || _frontImageUrl!.isEmpty) {
       _showError('กรุณาเลือกรูปภาพในการ์ด');
       return;
@@ -130,20 +131,36 @@ class _AddCardPageState extends State<AddCardPage> {
     setState(() => _isCreating = true);
 
     try {
-      // สร้าง sub-collection 'cards' ใน deck นี้
-      final newCardRef = _firestore
-          .collection('decks')
-          .doc(widget.deckId)
-          .collection('cards')
-          .doc();
+      if (widget.cardId != null) {
+        // อัปเดตการ์ดเดิม (โหมดแก้ไข)
+        await _firestore
+            .collection('decks')
+            .doc(widget.deckId)
+            .collection('cards')
+            .doc(widget.cardId)
+            .update({
+          'front_image': _frontImageUrl,
+          'back_text': _backTextController.text.trim(),
+        });
 
-      await newCardRef.set({
-        'front_image': _frontImageUrl,
-        'back_text': _backTextController.text.trim(),
-        'created_at': FieldValue.serverTimestamp(),
-      });
+        _showSuccess('บันทึกการแก้ไขสำเร็จ!');
+      } else {
+        // สร้างการ์ดใหม่
+        final newCardRef = _firestore
+            .collection('decks')
+            .doc(widget.deckId)
+            .collection('cards')
+            .doc();
 
-      _showSuccess('เพิ่มการ์ดสำเร็จ!');
+        await newCardRef.set({
+          'front_image': _frontImageUrl,
+          'back_text': _backTextController.text.trim(),
+          'created_at': FieldValue.serverTimestamp(),
+        });
+
+        _showSuccess('เพิ่มการ์ดสำเร็จ!');
+      }
+      
       if (mounted) Navigator.pop(context);
     } catch (e) {
       _showError('เกิดข้อผิดพลาด: $e');
@@ -185,71 +202,93 @@ class _AddCardPageState extends State<AddCardPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.backgroundNavy,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text("สร้างการ์ดใบใหม่", 
-          style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+        title: Text(widget.cardId != null ? "แก้ไขการ์ด" : "สร้างการ์ดใบใหม่", 
+          style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
         leading: IconButton(
           icon: const Icon(Icons.close, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: Column(
-        children: [
-          // ส่วนเนื้อหาแบบ Scroll ได้
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // --- ส่วนที่ 1: เลือกรูปภาพหน้าการ์ด ---
-                  const Text("1. เลือกรูปภาพสำหรับหน้าการ์ด", 
-                    style: TextStyle(color: Colors.amber, fontSize: 16, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 15),
-                  Center(
-                    child: _buildImageInput(),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: AppColors.cosmicGradient,
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // ส่วนเนื้อหาแบบ Scroll ได้
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // --- ส่วนที่ 1: เลือกรูปภาพหน้าการ์ด ---
+                      const Text("1. เลือกรูปภาพสำหรับหน้าการ์ด", 
+                        style: TextStyle(color: AppColors.cosmicCyan, fontSize: 16, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 15),
+                      Center(
+                        child: _buildImageInput(),
+                      ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1),
+                      const SizedBox(height: 8),
+                      const Center(
+                        child: Text("💡 ขนาดรูปที่แนะนำ: 800x1200 px", 
+                          style: TextStyle(color: AppColors.actionAmber, fontSize: 12)),
+                      ).animate().fadeIn(delay: 200.ms),
+
+                      const SizedBox(height: 40),
+
+                      // --- ส่วนที่ 2: กรอกข้อความหลังการ์ด ---
+                      const Text("2. กรอกข้อความสำหรับหลังการ์ด", 
+                        style: TextStyle(color: AppColors.cosmicCyan, fontSize: 16, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 15),
+                      _buildTextInput().animate().fadeIn(delay: 400.ms).slideX(begin: 0.1),
+                    ],
                   ),
-                  const SizedBox(height: 8),
-                  const Center(
-                    child: Text("💡 ขนาดรูปที่แนะนำ: 800x1200 px", 
-                      style: TextStyle(color: Colors.amber, fontSize: 12)),
-                  ),
-
-                  const SizedBox(height: 30),
-
-                  // --- ส่วนที่ 2: กรอกข้อความหลังการ์ด ---
-                  const Text("2. กรอกข้อความสำหรับหลังการ์ด", 
-                    style: TextStyle(color: Colors.amber, fontSize: 16, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 15),
-                  _buildTextInput(),
-                ],
-              ),
-            ),
-          ),
-
-          // --- ส่วนปุ่มยืนยันด้านล่าง ---
-          Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: SizedBox(
-              width: double.infinity,
-              height: 55,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green[700],
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
-                onPressed: (_isCreating || _isUploadingImage) ? null : _createCard,
-                child: (_isCreating || _isUploadingImage)
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text("เพิ่มการ์ดเข้าสำรับ", 
-                        style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
               ),
-            ),
+
+              // --- ส่วนปุ่มยืนยันด้านล่าง ---
+              Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Container(
+                  width: double.infinity,
+                  height: 55,
+                  decoration: BoxDecoration(
+                    gradient: AppColors.primaryActionGradient,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.cosmicCyan.withOpacity(0.4),
+                        blurRadius: 15,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: (_isCreating || _isUploadingImage) ? null : _saveCard,
+                    child: (_isCreating || _isUploadingImage)
+                        ? const SizedBox(
+                            width: 24, height: 24,
+                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                          )
+                        : Text(widget.cardId != null ? "บันทึกการแก้ไข" : "เพิ่มการ์ดเข้าสำรับ", 
+                            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                  ),
+                ).animate().slideY(begin: 0.5, delay: 600.ms),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -261,10 +300,7 @@ class _AddCardPageState extends State<AddCardPage> {
       child: AspectRatio(
         aspectRatio: 0.65,
         child: Container(
-          decoration: BoxDecoration(
-            color: const Color(0xFF2A2D4E),
-            borderRadius: BorderRadius.circular(15),
-            border: Border.all(color: Colors.white10),
+          decoration: AppColors.glassDecoration(radius: 15).copyWith(
             image: _frontImageUrl != null
                 ? DecorationImage(image: NetworkImage(_frontImageUrl!), fit: BoxFit.cover)
                 : null,
@@ -273,18 +309,18 @@ class _AddCardPageState extends State<AddCardPage> {
               ? const Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.photo_library_outlined, size: 60, color: Colors.white24),
+                    Icon(Icons.photo_library_outlined, size: 60, color: AppColors.cosmicCyan),
                     SizedBox(height: 10),
-                    Text("แตะเพื่อเลือกและตัดรูปภาพ", style: TextStyle(color: Colors.white24)),
+                    Text("แตะเพื่อเลือกและตัดรูปภาพ", style: TextStyle(color: AppColors.textWhiteMuted)),
                   ],
                 )
               : Stack(
                   alignment: Alignment.center,
                   children: [
                     Container(
-                      color: Colors.black26,
+                      color: Colors.black45,
                     ),
-                    Icon(Icons.edit, size: 40, color: Colors.white70),
+                    const Icon(Icons.edit, size: 40, color: Colors.white70),
                   ],
                 ),
         ),
@@ -295,21 +331,19 @@ class _AddCardPageState extends State<AddCardPage> {
   // --- Widget พื้นที่กรอกข้อความ Multi-line ---
   Widget _buildTextInput() {
     return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF2A2D4E),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      padding: const EdgeInsets.all(10),
+      decoration: AppColors.glassDecoration(radius: 12),
+      padding: const EdgeInsets.all(12),
       child: TextField(
         controller: _backTextController,
         maxLines: 6,
-        style: const TextStyle(color: Colors.white70),
+        style: const TextStyle(color: Colors.white),
+        cursorColor: AppColors.cosmicCyan,
         maxLength: 300,
         decoration: const InputDecoration(
           hintText: "กรอกคำทำนาย, ความหมาย, หรือผลลัพธ์ที่นี่...",
-          hintStyle: TextStyle(color: Colors.white10),
+          hintStyle: TextStyle(color: AppColors.textWhiteFaded),
           border: InputBorder.none,
-          counterStyle: TextStyle(color: Colors.white24),
+          counterStyle: TextStyle(color: AppColors.textWhiteMuted),
         ),
       ),
     );

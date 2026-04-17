@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/constants/app_colors.dart';
-import '../search/deck_view_wrapper.dart';
 import '../create/edit_deck_page.dart';
-import '../create/manage_deck_page.dart';
 
 class MyDeckPage extends StatefulWidget {
   const MyDeckPage({super.key});
@@ -13,7 +12,8 @@ class MyDeckPage extends StatefulWidget {
   State<MyDeckPage> createState() => _MyDeckPageState();
 }
 
-class _MyDeckPageState extends State<MyDeckPage> with WidgetsBindingObserver, TickerProviderStateMixin {
+class _MyDeckPageState extends State<MyDeckPage>
+    with WidgetsBindingObserver, TickerProviderStateMixin {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   late TabController _tabController;
@@ -62,27 +62,30 @@ class _MyDeckPageState extends State<MyDeckPage> with WidgetsBindingObserver, Ti
       return;
     }
 
-    yield* _firestore.collection('users').doc(user.uid).snapshots().asyncMap(
-      (userDoc) async {
-        if (!userDoc.exists) return [];
+    yield* _firestore.collection('users').doc(user.uid).snapshots().asyncMap((
+      userDoc,
+    ) async {
+      if (!userDoc.exists) return [];
 
-        final myDeckIds = List<String>.from(userDoc['my_decks'] ?? []);
-        if (myDeckIds.isEmpty) return [];
+      final myDeckIds = List<String>.from(userDoc['my_decks'] ?? []);
+      if (myDeckIds.isEmpty) return [];
 
-        List<DocumentSnapshot> decks = [];
-        for (String deckId in myDeckIds) {
-          try {
-            final deckDoc = await _firestore.collection('decks').doc(deckId).get();
-            if (deckDoc.exists) {
-              decks.add(deckDoc);
-            }
-          } catch (e) {
-            print('Error fetching my_deck: $e');
+      List<DocumentSnapshot> decks = [];
+      for (String deckId in myDeckIds) {
+        try {
+          final deckDoc = await _firestore
+              .collection('decks')
+              .doc(deckId)
+              .get();
+          if (deckDoc.exists) {
+            decks.add(deckDoc);
           }
+        } catch (e) {
+          print('Error fetching my_deck: $e');
         }
-        return decks;
-      },
-    );
+      }
+      return decks;
+    });
   }
 
   // Stream function สำหรับ favorites (listen real-time)
@@ -93,27 +96,30 @@ class _MyDeckPageState extends State<MyDeckPage> with WidgetsBindingObserver, Ti
       return;
     }
 
-    yield* _firestore.collection('users').doc(user.uid).snapshots().asyncMap(
-      (userDoc) async {
-        if (!userDoc.exists) return [];
+    yield* _firestore.collection('users').doc(user.uid).snapshots().asyncMap((
+      userDoc,
+    ) async {
+      if (!userDoc.exists) return [];
 
-        final favoriteIds = List<String>.from(userDoc['favorites'] ?? []);
-        if (favoriteIds.isEmpty) return [];
+      final favoriteIds = List<String>.from(userDoc['favorites'] ?? []);
+      if (favoriteIds.isEmpty) return [];
 
-        List<DocumentSnapshot> decks = [];
-        for (String deckId in favoriteIds) {
-          try {
-            final deckDoc = await _firestore.collection('decks').doc(deckId).get();
-            if (deckDoc.exists) {
-              decks.add(deckDoc);
-            }
-          } catch (e) {
-            print('Error fetching favorite: $e');
+      List<DocumentSnapshot> decks = [];
+      for (String deckId in favoriteIds) {
+        try {
+          final deckDoc = await _firestore
+              .collection('decks')
+              .doc(deckId)
+              .get();
+          if (deckDoc.exists) {
+            decks.add(deckDoc);
           }
+        } catch (e) {
+          print('Error fetching favorite: $e');
         }
-        return decks;
-      },
-    );
+      }
+      return decks;
+    });
   }
 
   // Stream function สำหรับ quick_draws (listen real-time)
@@ -124,57 +130,74 @@ class _MyDeckPageState extends State<MyDeckPage> with WidgetsBindingObserver, Ti
       return;
     }
 
-    yield* _firestore.collection('users').doc(user.uid).snapshots().asyncMap(
-      (userDoc) async {
-        if (!userDoc.exists) return [];
+    yield* _firestore.collection('users').doc(user.uid).snapshots().asyncMap((
+      userDoc,
+    ) async {
+      if (!userDoc.exists) return [];
 
-        final quickDrawIds = List<String>.from(userDoc['quick_draws'] ?? []);
-        if (quickDrawIds.isEmpty) return [];
+      final quickDrawIds = List<String>.from(userDoc['quick_draws'] ?? []);
+      if (quickDrawIds.isEmpty) return [];
 
-        List<DocumentSnapshot> decks = [];
-        for (String deckId in quickDrawIds) {
-          try {
-            final deckDoc = await _firestore.collection('decks').doc(deckId).get();
-            if (deckDoc.exists) {
-              decks.add(deckDoc);
-            }
-          } catch (e) {
-            print('Error fetching quick_draw: $e');
+      List<DocumentSnapshot> decks = [];
+      for (String deckId in quickDrawIds) {
+        try {
+          final deckDoc = await _firestore
+              .collection('decks')
+              .doc(deckId)
+              .get();
+          if (deckDoc.exists) {
+            decks.add(deckDoc);
           }
+        } catch (e) {
+          print('Error fetching quick_draw: $e');
         }
-        return decks;
-      },
-    );
+      }
+      return decks;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.backgroundNavy,
-      body: SafeArea( 
+      body: SafeArea(
         child: Column(
           children: [
-            TabBar(
-              controller: _tabController,
-              isScrollable: false,
-              indicatorSize: TabBarIndicatorSize.label,
-              indicatorColor: Colors.amber,
-              labelColor: Colors.white,
-              unselectedLabelColor: Colors.white38,
-              padding: EdgeInsets.zero,
-              labelPadding: EdgeInsets.zero,
-              tabs: const [
-                Tab(text: "Deck ของฉัน"),
-                Tab(text: "รายการโปรด"),
-                Tab(text: "Quick Draw"),
-              ],
-            ),
-            
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.glassBorder,
+                borderRadius: BorderRadius.circular(25),
+              ),
+              child: TabBar(
+                controller: _tabController,
+                isScrollable: false,
+                indicatorSize: TabBarIndicatorSize.tab,
+                dividerColor: Colors.transparent,
+                indicator: BoxDecoration(
+                  borderRadius: BorderRadius.circular(25),
+                  color: AppColors.cosmicCyan.withOpacity(0.2),
+                  border: Border.all(color: AppColors.cosmicCyan, width: 1),
+                ),
+                labelColor: AppColors.cosmicCyan,
+                unselectedLabelColor: Colors.white54,
+                labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                tabs: const [
+                  Tab(text: "My Decks"),
+                  Tab(text: "Favorites"),
+                  Tab(text: "Quick Draw"),
+                ],
+              ),
+            ).animate().fadeIn(duration: 500.ms).slideY(begin: -0.2),
+
             Expanded(
               child: TabBarView(
                 controller: _tabController,
                 children: [
-                  _buildDeckGridWithStream(_getMyDecksStream(), showAddButton: true),
+                  _buildDeckGridWithStream(
+                    _getMyDecksStream(),
+                    showAddButton: true,
+                  ),
                   _buildDeckGridWithStream(_getFavoritesStream()),
                   _buildDeckGridWithStream(_getQuickDrawsStream()),
                 ],
@@ -186,7 +209,10 @@ class _MyDeckPageState extends State<MyDeckPage> with WidgetsBindingObserver, Ti
     );
   }
 
-  Widget _buildDeckGridWithStream(Stream<List<DocumentSnapshot>> stream, {bool showAddButton = false}) {
+  Widget _buildDeckGridWithStream(
+    Stream<List<DocumentSnapshot>> stream, {
+    bool showAddButton = false,
+  }) {
     return StreamBuilder<List<DocumentSnapshot>>(
       stream: stream,
       builder: (context, snapshot) {
@@ -227,39 +253,61 @@ class _MyDeckPageState extends State<MyDeckPage> with WidgetsBindingObserver, Ti
 
             return GestureDetector(
               onTap: () {
-                Navigator.push(
+                Navigator.pushNamed(
                   context,
-                  PageRouteBuilder(
-                    pageBuilder: (context, anim, secAnim) => EditDeckPage(deckId: deckId),
-                    transitionsBuilder: (context, anim, secAnim, child) {
-                      return FadeTransition(opacity: anim, child: child);
-                    },
-                  ),
+                  '/deck_detail',
+                  arguments: deck,
                 );
               },
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: coverImage.isNotEmpty
-                    ? Image.network(
-                        coverImage,
-                        fit: BoxFit.cover,
-                        key: ValueKey(coverImage),
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            color: Colors.white10,
-                            child: const Icon(Icons.broken_image, color: Colors.white24),
-                          );
-                        },
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return Container(color: Colors.white.withOpacity(0.05));
-                        },
-                      )
-                    : Container(
-                        color: Colors.white10,
-                        child: const Icon(Icons.broken_image, color: Colors.white24),
-                      ),
-              ),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.3),
+                      blurRadius: 10,
+                      offset: const Offset(0, 5),
+                    )
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: coverImage.isNotEmpty
+                      ? Image.network(
+                          coverImage,
+                          fit: BoxFit.cover,
+                          key: ValueKey(coverImage),
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              color: AppColors.glassBorder,
+                              child: const Icon(
+                                Icons.broken_image,
+                                color: Colors.white24,
+                              ),
+                            );
+                          },
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Container(
+                              color: AppColors.glassBorder,
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  color: AppColors.cosmicCyan.withOpacity(0.5)
+                                )
+                              ),
+                            );
+                          },
+                        )
+                      : Container(
+                          color: AppColors.glassBorder,
+                          child: const Icon(
+                            Icons.style,
+                            color: Colors.white24,
+                            size: 40,
+                          ),
+                        ),
+                ),
+              ).animate().fadeIn(delay: Duration(milliseconds: 50 * index)).scale(curve: Curves.easeOutQuart),
             );
           },
         );
@@ -270,7 +318,6 @@ class _MyDeckPageState extends State<MyDeckPage> with WidgetsBindingObserver, Ti
   Widget _buildAddButton() {
     return GestureDetector(
       onTap: () async {
-        // สร้าง deck ใหม่โดยไม่ระบุ deckId
         await Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => const EditDeckPage()),
@@ -283,11 +330,19 @@ class _MyDeckPageState extends State<MyDeckPage> with WidgetsBindingObserver, Ti
       },
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.white24, width: 1.5),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.cosmicCyan.withOpacity(0.5), width: 1.5, style: BorderStyle.solid),
+          color: AppColors.cosmicCyan.withOpacity(0.1),
         ),
-        child: const Icon(Icons.add, color: Colors.white38, size: 40),
-      ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.add_circle_outline, color: AppColors.cosmicCyan, size: 36),
+            const SizedBox(height: 8),
+            Text("Create", style: TextStyle(color: AppColors.cosmicCyan, fontWeight: FontWeight.bold))
+          ],
+        ),
+      ).animate().fadeIn().scale(curve: Curves.easeOutQuart),
     );
   }
 }

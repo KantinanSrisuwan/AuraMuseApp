@@ -133,8 +133,7 @@ class _RegisterPageState extends State<RegisterPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.backgroundNavy,
-      // ปุ่มย้อนกลับ (Back Button)
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -143,21 +142,38 @@ class _RegisterPageState extends State<RegisterPage> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 40),
-        child: Column(
-          children: [
-            const SizedBox(height: 20),
-            const Text(
-              "สมัครสมาชิก",
-              style: TextStyle(
-                color: AppColors.textWhite,
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 40),
-            // ช่องกรอกข้อมูลสำหรับสมัครสมาชิก
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: AppColors.cosmicGradient,
+        ),
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 80),
+            child: Container(
+              padding: const EdgeInsets.all(32),
+              decoration: AppColors.glassDecoration(radius: 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    "สมัครสมาชิก",
+                    style: TextStyle(
+                      color: AppColors.textWhite,
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    "Join the constellation",
+                    style: TextStyle(
+                      color: AppColors.textWhiteMuted,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+                  // ช่องกรอกข้อมูลสำหรับสมัครสมาชิก
             CustomInputField(label: "NAME", controller: _nameController),
             const SizedBox(height: 20),
             CustomInputField(label: "EMAIL", controller: _emailController),
@@ -173,41 +189,55 @@ class _RegisterPageState extends State<RegisterPage> {
               isPassword: true,
               controller: _confirmPasswordController,
             ),
-            const SizedBox(height: 60),
-            // ปุ่มลงทะเบียน
-            SizedBox(
-              width: 250,
-              height: 55,
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : _handleRegister,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.actionGreen,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 24,
-                        width: 24,
-                        child: CircularProgressIndicator(
-                          valueColor:
-                              AlwaysStoppedAnimation<Color>(Colors.white),
-                          strokeWidth: 2,
+                  const SizedBox(height: 40),
+                  // ปุ่มลงทะเบียน
+                  Container(
+                    width: double.infinity,
+                    height: 55,
+                    decoration: BoxDecoration(
+                      gradient: AppColors.primaryActionGradient,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.cosmicCyan.withOpacity(0.4),
+                          blurRadius: 15,
+                          offset: const Offset(0, 4),
                         ),
-                      )
-                    : const Text(
-                        "ลงทะเบียน",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
+                      ],
+                    ),
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _handleRegister,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: CircularProgressIndicator(
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Text(
+                              "ลงทะเบียน",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                letterSpacing: 1,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 20),
-          ],
+          ),
         ),
       ),
     );
