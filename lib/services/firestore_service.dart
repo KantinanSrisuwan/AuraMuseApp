@@ -244,6 +244,8 @@ class FirestoreService {
   // ลบ Deck
   static Future<bool> deleteDeck(String deckId) async {
     try {
+      print('🔍 DEBUG: deleteDeck called with deckId: $deckId');
+      
       // ลบ sub-collection cards ก่อน
       final cardsSnapshot = await _db
           .collection('decks')
@@ -251,16 +253,21 @@ class FirestoreService {
           .collection('cards')
           .get();
 
+      print('🔍 DEBUG: Found ${cardsSnapshot.docs.length} cards to delete');
+
       for (var cardDoc in cardsSnapshot.docs) {
         await cardDoc.reference.delete();
       }
 
+      print('🔍 DEBUG: All cards deleted, now deleting deck document');
+
       // ลบ deck document
       await _db.collection('decks').doc(deckId).delete();
 
+      print('🔍 DEBUG: Deck deleted successfully!');
       return true;
     } catch (e) {
-      print('Error deleting deck: $e');
+      print('❌ ERROR deleting deck: $e');
       return false;
     }
   }
@@ -428,6 +435,96 @@ class FirestoreService {
       return true;
     } catch (e) {
       print('Error deleting report: $e');
+      return false;
+    }
+  }
+
+  // ดึง Decks ที่มี Reports เท่านั้น
+  static Future<List<DeckModel>> getDecksWithReports() async {
+    try {
+      // ดึง decks ทั้งหมด
+      final snapshot = await _db.collection('decks').get();
+      List<DeckModel> decks = [];
+
+      for (var doc in snapshot.docs) {
+        // ตรวจสอบว่ามี field 'reports' และ ไม่เป็น null หรือ empty
+        final data = doc.data() as Map<String, dynamic>;
+        final reportsField = data['reports'];
+        if (reportsField != null && (reportsField is List && reportsField.isNotEmpty || reportsField is Map && (reportsField as Map).isNotEmpty)) {
+          // ดึงจำนวน cards จาก sub-collection
+          final cardsSnapshot = await _db
+              .collection('decks')
+              .doc(doc.id)
+              .collection('cards')
+              .get();
+
+          final deck = DeckModel.fromFirestore(doc, cardsSnapshot.docs.length);
+          
+          // ดึง username จาก creator ID
+          final creatorId = deck.creatorId;
+          if (creatorId.isNotEmpty) {
+            final creatorUsername = await getUsernameById(creatorId);
+            deck.creatorUsername = creatorUsername;
+          }
+          
+          decks.add(deck);
+        }
+      }
+
+      return decks;
+    } catch (e) {
+      print('Error fetching decks with reports: $e');
+      return [];
+    }
+  }
+
+  // Stream สำหรับ Real-time Decks ที่มี Reports
+  static Stream<List<DeckModel>> getDecksStreamWithReports() {
+    return _db.collection('decks').snapshots().asyncMap((snapshot) async {
+      List<DeckModel> decks = [];
+      for (var doc in snapshot.docs) {
+        // ตรวจสอบว่ามี field 'reports' และ ไม่เป็น null หรือ empty
+        final data = doc.data() as Map<String, dynamic>;
+        final reportsField = data['reports'];
+        if (reportsField != null && (reportsField is List && reportsField.isNotEmpty || reportsField is Map && (reportsField as Map).isNotEmpty)) {
+          final cardsSnapshot = await _db
+              .collection('decks')
+              .doc(doc.id)
+              .collection('cards')
+              .get();
+
+          final deck = DeckModel.fromFirestore(doc, cardsSnapshot.docs.length);
+          
+          // ดึง username จาก creator ID
+          final creatorId = deck.creatorId;
+          if (creatorId.isNotEmpty) {
+            final creatorUsername = await getUsernameById(creatorId);
+            deck.creatorUsername = creatorUsername;
+          }
+          
+          decks.add(deck);
+        }
+      }
+      return decks;
+    });
+  }
+
+  // ปฏิเสธการรายงาน - ลบ reports field และสร้าง reject_reason
+  static Future<bool> rejectDeckReport(String deckId, String rejectReason) async {
+    try {
+      print('🔍 DEBUG: rejectDeckReport called with deckId: $deckId');
+      print('🔍 DEBUG: rejectReason: $rejectReason');
+      
+      await _db.collection('decks').doc(deckId).update({
+        'reports': FieldValue.delete(), // ลบ reports field
+        'reject_reason': rejectReason, // สร้าง reject_reason field
+        'reject_timestamp': FieldValue.serverTimestamp(),
+      });
+      
+      print('🔍 DEBUG: Report rejected successfully!');
+      return true;
+    } catch (e) {
+      print('❌ ERROR rejecting report: $e');
       return false;
     }
   }
