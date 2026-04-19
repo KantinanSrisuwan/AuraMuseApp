@@ -1,29 +1,6 @@
 import 'package:flutter/material.dart';
-import 'dart:math';
 import 'dart:ui';
-// หมายเหตุ: อย่าลืมตรวจสอบ path ของ AdminRoutes ให้ตรงกับโปรเจกต์ของคุณนะครับ
-import '../../core/routes/admin_routes.dart'; 
-
-// --- Model สำหรับเก็บข้อมูลสำรับให้คงที่ ---
-class DeckModel {
-  final String id;
-  final String name;
-  final int cardCount;
-  final String status;
-  final bool isWaiting;
-  final bool isPublic;
-
-  DeckModel({
-    required this.id,
-    required this.name,
-    required this.cardCount,
-    required this.status,
-    this.isWaiting = false,
-    this.isPublic = false,
-  });
-}
-
-// --- ตั้งค่าให้เมาส์คลิกลากได้ (สำหรับ Web) ---
+import '../../services/firestore_service.dart';
 class MyCustomScrollBehavior extends MaterialScrollBehavior {
   @override
   Set<PointerDeviceKind> get dragDevices => {
@@ -40,49 +17,15 @@ class AdminUserDetailPage extends StatefulWidget {
 }
 
 class _AdminUserDetailPageState extends State<AdminUserDetailPage> {
-  // ข้อมูลสมมติของผู้ใช้
-  String username = "ราชาคนุษยัยามดึก";
-  String email = "tokjaiz01@gmail.com";
   int deckCategoryIndex = 0;
-  final List<String> categories = ["สำรับที่รอการตรวจสอบ", "สำรับที่เผยแพร่สู่สาธารณะ", "สำรับส่วนตัว"];
-
-  // List เก็บข้อมูลสำรับแยกตามประเภท (สุ่มแค่ครั้งเดียวตอน initState)
-  List<DeckModel> waitingDecks = [];
-  List<DeckModel> publicDecks = [];
-  List<DeckModel> privateDecks = [];
-
-  @override
-  void initState() {
-    super.initState();
-    _initMockData();
-  }
-
-  // ฟังก์ชันสุ่มข้อมูลจำลอง (จะถูกเรียกครั้งเดียว ข้อมูลจะนิ่ง)
-  void _initMockData() {
-    final rand = Random();
-    List<String> pool = ["คัมภีร์ลับ", "มนตราดำ", "แสงแห่งเทพ", "บทกวีพงไพร", "เงาจันทร์", "ตำนานมังกร"];
-    
-    // 1. สำรับรอตรวจสอบ
-    waitingDecks = List.generate(4, (i) => DeckModel(
-      id: "W-${100+i}", name: "${pool[rand.nextInt(pool.length)]} #${i+1}", 
-      cardCount: 5 + rand.nextInt(15), status: "รอการตรวจสอบ", isWaiting: true
-    ));
-    // 2. สำรับสาธารณะ
-    publicDecks = List.generate(7, (i) => DeckModel(
-      id: "P-${200+i}", name: "${pool[rand.nextInt(pool.length)]} #${i+1}", 
-      cardCount: 15 + rand.nextInt(15), status: "เผยแพร่แล้ว", isPublic: true
-    ));
-    // 3. สำรับส่วนตัว
-    privateDecks = List.generate(3, (i) => DeckModel(
-      id: "PV-${300+i}", name: "${pool[rand.nextInt(pool.length)]} #${i+1}", 
-      cardCount: 10 + rand.nextInt(10), status: "ส่วนตัว"
-    ));
-  }
+  final List<String> categories = ["สำรับที่รอตรวจสอบ", "สำรับที่ได้รับการยืนยันแล้ว"];
 
   @override
   Widget build(BuildContext context) {
-    final dynamic args = ModalRoute.of(context)!.settings.arguments;
-    List<DeckModel> activeList = deckCategoryIndex == 0 ? waitingDecks : (deckCategoryIndex == 1 ? publicDecks : privateDecks);
+    final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+    final userId = args['userId'] ?? '';
+    final username = args['username'] ?? 'ไม่ระบุ';
+    final email = args['email'] ?? '';
 
     return Scaffold(
       backgroundColor: const Color(0xFF13112B),
@@ -102,14 +45,37 @@ class _AdminUserDetailPageState extends State<AdminUserDetailPage> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 children: [
-                  _buildProfileHeader(args),
+                  _buildProfileHeader(userId, username, email),
                   const SizedBox(height: 30),
-                  _buildDeckSlider(activeList),
+                  FutureBuilder(
+                    future: FirestoreService.getDecksByCreator(userId),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(
+                          child: CircularProgressIndicator(color: Colors.white),
+                        );
+                      }
+
+                      if (snapshot.hasError) {
+                        return Center(
+                          child: Text(
+                            'เกิดข้อผิดพลาด: ${snapshot.error}',
+                            style: const TextStyle(color: Colors.red),
+                          ),
+                        );
+                      }
+
+                      final allDecks = snapshot.data ?? [];
+                      final filteredDecks = _filterDecksByCategory(allDecks);
+
+                      return _buildDeckSlider(filteredDecks);
+                    },
+                  ),
                   const SizedBox(height: 150), // เผื่อที่ให้ปุ่มด้านล่าง
                 ],
               ),
             ),
-            _buildActionButtons(context),
+            _buildActionButtons(context, userId),
           ],
         ),
       ),
@@ -117,23 +83,33 @@ class _AdminUserDetailPageState extends State<AdminUserDetailPage> {
   }
 
   // --- Widget: ส่วนหัวโปรไฟล์ ---
-  Widget _buildProfileHeader(dynamic args) {
+  Widget _buildProfileHeader(String userId, String username, String email) {
     return Row(
       children: [
-        CircleAvatar(
+        const CircleAvatar(
           radius: 65, 
           backgroundColor: Colors.deepPurple, 
-          backgroundImage: NetworkImage("https://picsum.photos/seed/${args?['userId'] ?? 'user'}/200")
+          child: Icon(Icons.person, size: 80, color: Colors.white),
         ),
         const SizedBox(width: 20),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          _infoText("หมายเลข user", args?['userId'] ?? "1082"),
+          _infoText("หมายเลข user", userId),
           _infoText("Username", username),
           _infoText("EMAIL", email),
-          _infoText("รวมสำรับทั้งหมด", "${waitingDecks.length + publicDecks.length + privateDecks.length}"),
         ])),
       ],
     );
+  }
+
+  // ฟังก์ชันสำหรับแบ่งเด็คตามสถานะ
+  List<DeckModel> _filterDecksByCategory(List<DeckModel> allDecks) {
+    if (deckCategoryIndex == 0) {
+      // สำรับที่รอตรวจสอบ
+      return allDecks.where((d) => d.deckStatus == 'unverified').toList();
+    } else {
+      // สำรับที่ได้รับการยืนยันแล้ว
+      return allDecks.where((d) => d.deckStatus == 'verified').toList();
+    }
   }
 
   // --- Widget: Container แสดงสำรับ (พร้อมลูกศรสลับประเภท) ---
@@ -156,8 +132,8 @@ class _AdminUserDetailPageState extends State<AdminUserDetailPage> {
               ),
               Text(categories[deckCategoryIndex], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
               IconButton(
-                icon: Icon(Icons.arrow_forward_ios, color: deckCategoryIndex < 2 ? Colors.white : Colors.white24, size: 20), 
-                onPressed: deckCategoryIndex < 2 ? () => setState(() => deckCategoryIndex++) : null
+                icon: Icon(Icons.arrow_forward_ios, color: deckCategoryIndex < 1 ? Colors.white : Colors.white24, size: 20), 
+                onPressed: deckCategoryIndex < 1 ? () => setState(() => deckCategoryIndex++) : null
               ),
             ],
           ),
@@ -180,26 +156,24 @@ class _AdminUserDetailPageState extends State<AdminUserDetailPage> {
   // --- Widget: การ์ดสำรับใบย่อย ---
   Widget _buildDeckCard(DeckModel deck, int index) {
     return GestureDetector(
-      onTap: () async {
-        final result = await Navigator.pushNamed(
+      onTap: () {
+        Navigator.pushNamed(
           context, 
-          deck.isWaiting ? AdminRoutes.adminVerifyDetail : AdminRoutes.adminDeckDetail, 
+          deck.deckStatus == 'unverified' ? '/admin/verify_detail' : '/admin/deck_detail', 
           arguments: {
             'deckId': deck.id, 
-            'deckName': deck.name, 
+            'deckName': deck.deckName, 
             'cardCount': deck.cardCount.toString(),
-            'isPublic': deck.isPublic, 
-            'status': deck.status
+            'deckStatus': deck.deckStatus,
+            'creatorUsername': deck.creatorUsername,
+            'viewCount': deck.viewCount,
+            'drawCount': deck.drawCount,
           }
-        );
-        if (result == "delete") {
-          setState(() {
-            if (deckCategoryIndex == 0) {
-              waitingDecks.removeAt(index);
-            } else if (deckCategoryIndex == 1) publicDecks.removeAt(index);
-            else privateDecks.removeAt(index);
-          });
-        }
+        ).then((_) {
+          if (mounted) {
+            setState(() {});
+          }
+        });
       },
       child: Container(
         width: 120, margin: const EdgeInsets.only(right: 15, top: 10),
@@ -215,7 +189,7 @@ class _AdminUserDetailPageState extends State<AdminUserDetailPage> {
             const SizedBox(height: 10),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 5), 
-              child: Text(deck.name, style: const TextStyle(color: Colors.white, fontSize: 10), overflow: TextOverflow.ellipsis, textAlign: TextAlign.center)
+              child: Text(deck.deckName, style: const TextStyle(color: Colors.white, fontSize: 10), overflow: TextOverflow.ellipsis, textAlign: TextAlign.center)
             ),
             Text("${deck.cardCount} ใบ", style: const TextStyle(color: Colors.white38, fontSize: 9)),
           ],
@@ -227,15 +201,14 @@ class _AdminUserDetailPageState extends State<AdminUserDetailPage> {
   Widget _infoText(String l, String v) => Padding(padding: const EdgeInsets.only(bottom: 5), child: Text("$l : $v", style: const TextStyle(color: Colors.white70, fontSize: 13)));
 
   // --- Widget: กลุ่มปุ่มด้านล่าง ---
-  Widget _buildActionButtons(BuildContext context) {
+  Widget _buildActionButtons(BuildContext context, String userId) {
     return Positioned(
       bottom: 30, left: 20, right: 20, 
       child: Row(
         children: [
-          // แก้ไขสีปุ่มแก้ไขข้อมูลเป็นสีเหลืองสว่าง (Yellow Accent)
-          Expanded(child: _btn("แก้ไขข้อมูล", const Color.fromARGB(248, 255, 208, 0), Colors.white, () => Navigator.pushNamed(context, AdminRoutes.adminEditUser))),
+          Expanded(child: _btn("แก้ไขข้อมูล", const Color.fromARGB(248, 255, 208, 0), Colors.white, () => Navigator.pushNamed(context, '/admin_edit_user', arguments: {'userId': userId}))),
           const SizedBox(width: 15),
-          Expanded(child: _btn("ลบบัญชี", Colors.redAccent, Colors.white, () => _showDeleteUserDialog(context))),
+          Expanded(child: _btn("ลบบัญชี", Colors.redAccent, Colors.white, () => _showDeleteUserDialog(context, userId))),
         ],
       ),
     );
@@ -255,7 +228,7 @@ class _AdminUserDetailPageState extends State<AdminUserDetailPage> {
   }
 
   // --- Pop-up ยืนยันการลบบัญชี ---
-  void _showDeleteUserDialog(BuildContext context) {
+  void _showDeleteUserDialog(BuildContext context, String userId) {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -280,7 +253,8 @@ class _AdminUserDetailPageState extends State<AdminUserDetailPage> {
           actions: [
             Row(
               children: [
-                Expanded(child: _btn("ยืนยันการลบ", Colors.redAccent, Colors.white, () {
+                Expanded(child: _btn("ยืนยันการลบ", Colors.redAccent, Colors.white, () async {
+                  await FirestoreService.deleteUser(userId);
                   Navigator.pop(dialogContext);
                   Navigator.pop(context);
                 })),
