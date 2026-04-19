@@ -8,11 +8,9 @@ import 'core/constants/app_colors.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // 4. สั่งเริ่มการทำงานของ Firebase
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   runApp(const AuraMuseApp());
 }
@@ -27,10 +25,11 @@ class AuraMuseApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         scaffoldBackgroundColor: AppColors.backgroundNavy,
-        textTheme: GoogleFonts.promptTextTheme(Theme.of(context).textTheme).apply(
-          bodyColor: AppColors.textWhite,
-          displayColor: AppColors.textWhite,
-        ),
+        textTheme: GoogleFonts.promptTextTheme(Theme.of(context).textTheme)
+            .apply(
+              bodyColor: AppColors.textWhite,
+              displayColor: AppColors.textWhite,
+            ),
         appBarTheme: const AppBarTheme(
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -44,10 +43,7 @@ class AuraMuseApp extends StatelessWidget {
         ),
       ),
       initialRoute: AppRoutes.login,
-      routes: {
-        ... AppRoutes.getRoutes(), 
-        ... AdminRoutes.getRoutes(),
-      },
+      routes: {...AppRoutes.getRoutes(), ...AdminRoutes.getRoutes()},
       onGenerateRoute: AppRoutes.onGenerateRoute,
     );
   }

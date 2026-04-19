@@ -17,7 +17,8 @@ class _RegisterPageState extends State<RegisterPage> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
   bool _isLoading = false;
 
   // ฟังก์ชันจัดการการลงทะเบียน
@@ -49,24 +50,26 @@ class _RegisterPageState extends State<RegisterPage> {
       // 4. สร้างบัญชี Firebase Auth
       UserCredential userCredential = await FirebaseAuth.instance
           .createUserWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
+            email: _emailController.text.trim(),
+            password: _passwordController.text.trim(),
+          );
 
       // 5. บันทึกข้อมูล user ใน Firestore
       await FirebaseFirestore.instance
           .collection('users')
           .doc(userCredential.user!.uid)
           .set({
-        'uid': userCredential.user!.uid,
-        'username': _usernameController.text.trim(),
-        'email': _emailController.text.trim(),
-        'role': 'user', // ตั้งค่า role เป็น user ปกติ
-        'total_decks_created': 0, // เริ่มต้น 0 เด็ค
-        'favorites': [], // รายการเด็คที่กดถูกใจ
-        'quick_draws': [], // รายการเด็คที่กดสายฟ้า
-        'created_at': FieldValue.serverTimestamp(),
-      });
+            'uid': userCredential.user!.uid,
+            'username': _usernameController.text.trim(),
+            'email': _emailController.text.trim(),
+            'role': 'user', // ตั้งค่า role เป็น user ปกติ
+            'total_decks_created': 0, // เริ่มต้น 0 เด็ค
+            'favorites': [], // รายการเด็คที่กดถูกใจ
+            'quick_draws': [
+              'om37Qmkfs0hIwt1g0ySp',
+            ], // รายการเด็คที่กดสายฟ้า (เริ่มต้นด้วยเด็คตัวอย่าง)
+            'created_at': FieldValue.serverTimestamp(),
+          });
 
       if (!mounted) return;
 
@@ -156,7 +159,10 @@ class _RegisterPageState extends State<RegisterPage> {
             ),
             const SizedBox(height: 40),
             // ช่องกรอกข้อมูลสำหรับสมัครสมาชิก
-            CustomInputField(label: "USERNAME", controller: _usernameController),
+            CustomInputField(
+              label: "USERNAME",
+              controller: _usernameController,
+            ),
             const SizedBox(height: 20),
             CustomInputField(label: "EMAIL", controller: _emailController),
             const SizedBox(height: 20),
@@ -171,54 +177,56 @@ class _RegisterPageState extends State<RegisterPage> {
               isPassword: true,
               controller: _confirmPasswordController,
             ),
-                  const SizedBox(height: 40),
-                  // ปุ่มลงทะเบียน
-                  Container(
-                    width: double.infinity,
-                    height: 55,
-                    decoration: BoxDecoration(
-                      gradient: AppColors.primaryActionGradient,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.cosmicCyan.withOpacity(0.4),
-                          blurRadius: 15,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: ElevatedButton(
-                      onPressed: _isLoading ? null : _handleRegister,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.transparent,
-                        shadowColor: Colors.transparent,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: _isLoading
-                          ? const SizedBox(
-                              height: 24,
-                              width: 24,
-                              child: CircularProgressIndicator(
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                strokeWidth: 2,
-                              ),
-                            )
-                          : const Text(
-                              "ลงทะเบียน",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                letterSpacing: 1,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                    ),
+            const SizedBox(height: 40),
+            // ปุ่มลงทะเบียน
+            Container(
+              width: double.infinity,
+              height: 55,
+              decoration: BoxDecoration(
+                gradient: AppColors.primaryActionGradient,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.cosmicCyan.withOpacity(0.4),
+                    blurRadius: 15,
+                    offset: const Offset(0, 4),
                   ),
                 ],
               ),
+              child: ElevatedButton(
+                onPressed: _isLoading ? null : _handleRegister,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: _isLoading
+                    ? const SizedBox(
+                        height: 24,
+                        width: 24,
+                        child: CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Text(
+                        "ลงทะเบียน",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          letterSpacing: 1,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+              ),
             ),
+          ],
+        ),
+      ),
     );
   }
 }
