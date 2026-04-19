@@ -206,8 +206,6 @@ class _AdminUserDetailPageState extends State<AdminUserDetailPage> {
       bottom: 30, left: 20, right: 20, 
       child: Row(
         children: [
-          Expanded(child: _btn("แก้ไขข้อมูล", const Color.fromARGB(248, 255, 208, 0), Colors.white, () => Navigator.pushNamed(context, '/admin_edit_user', arguments: {'userId': userId}))),
-          const SizedBox(width: 15),
           Expanded(child: _btn("ลบบัญชี", Colors.redAccent, Colors.white, () => _showDeleteUserDialog(context, userId))),
         ],
       ),
