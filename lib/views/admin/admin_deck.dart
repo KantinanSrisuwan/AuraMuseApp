@@ -44,8 +44,8 @@ class _AdminDeckState extends State<AdminDeck> {
           ),
           const SizedBox(height: 20),
           Expanded(
-            child: FutureBuilder(
-              future: FirestoreService.getAllDecks(),
+            child: StreamBuilder<List<DeckModel>>(
+              stream: FirestoreService.getDecksStream(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
@@ -63,8 +63,11 @@ class _AdminDeckState extends State<AdminDeck> {
                 }
 
                 final decks = snapshot.data ?? [];
+                
+                // กรองเอาเฉพาะสำรับที่ไม่ได้ถูก reject และไม่ได้ถูกยอมรับการรายงาน (แบน) ออกมาแสดง
+                final displayDecks = decks.where((deck) => deck.deckStatus != 'reject' && !deck.reportAccept).toList();
 
-                if (decks.isEmpty) {
+                if (displayDecks.isEmpty) {
                   return const Center(
                     child: Text(
                       'ไม่มีสำรับในระบบ',
@@ -74,9 +77,9 @@ class _AdminDeckState extends State<AdminDeck> {
                 }
 
                 return ListView.builder(
-                  itemCount: decks.length,
+                  itemCount: displayDecks.length,
                   itemBuilder: (context, index) {
-                    final deck = decks[index];
+                    final deck = displayDecks[index];
                     return _buildDeckItem(
                       deckId: deck.id,
                       cardCount: deck.cardCount.toString(),
@@ -117,7 +120,12 @@ class _AdminDeckState extends State<AdminDeck> {
             'deckStatus': deckStatus,
             // ... ข้อมูลอื่นๆ
           },
-        );
+        ).then((_) {
+          // รีเฟรชหน้าจอเมื่อกลับมาจากหน้า detail
+          if (mounted) {
+            setState(() {});
+          }
+        });
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 15),

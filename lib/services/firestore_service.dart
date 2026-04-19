@@ -12,6 +12,7 @@ class DeckModel {
   final DateTime createdAt;
   final int cardCount;
   final String deckStatus; // verified หรือ unverified
+  final bool reportAccept;
 
   DeckModel({
     required this.id,
@@ -24,6 +25,7 @@ class DeckModel {
     required this.createdAt,
     required this.cardCount,
     this.deckStatus = 'unverified',
+    this.reportAccept = false,
   });
 
   factory DeckModel.fromFirestore(DocumentSnapshot doc, int cardCount) {
@@ -39,6 +41,7 @@ class DeckModel {
       createdAt: (data['created_at'] as Timestamp?)?.toDate() ?? DateTime.now(),
       cardCount: cardCount,
       deckStatus: data['deck_status'] ?? 'unverified',
+      reportAccept: data['report_accept'] == true || data['report_accept'] == 'true',
     );
   }
 }
@@ -285,6 +288,20 @@ class FirestoreService {
     }
   }
 
+  // ปฏิเสธการยืนยันเด็ค
+  static Future<bool> rejectDeckVerification(String deckId, String reason) async {
+    try {
+      await _db.collection('decks').doc(deckId).update({
+        'deck_status': 'reject',
+        'reject_reason': reason,
+      });
+      return true;
+    } catch (e) {
+      print('Error rejecting deck verification: $e');
+      return false;
+    }
+  }
+
   // ดึง Users ทั้งหมด
   static Future<List<Map<String, dynamic>>> getAllUsers() async {
     try {
@@ -509,7 +526,7 @@ class FirestoreService {
     });
   }
 
-  // ปฏิเสธการรายงาน - ลบ reports field และสร้าง reject_reason
+  // ปฏิเสธการรายงาน
   static Future<bool> rejectDeckReport(String deckId, String rejectReason) async {
     try {
       print('🔍 DEBUG: rejectDeckReport called with deckId: $deckId');
@@ -517,7 +534,8 @@ class FirestoreService {
       
       await _db.collection('decks').doc(deckId).update({
         'reports': FieldValue.delete(), // ลบ reports field
-        'reject_reason': rejectReason, // สร้าง reject_reason field
+        'report_accept': false,
+        'reject_report_str': rejectReason, // สร้าง reject_report_str field
         'reject_timestamp': FieldValue.serverTimestamp(),
       });
       
@@ -525,6 +543,26 @@ class FirestoreService {
       return true;
     } catch (e) {
       print('❌ ERROR rejecting report: $e');
+      return false;
+    }
+  }
+
+  // ยอมรับการรายงาน
+  static Future<bool> acceptDeckReport(String deckId) async {
+    try {
+      print('🔍 DEBUG: acceptDeckReport called with deckId: $deckId');
+      
+      await _db.collection('decks').doc(deckId).update({
+        'reports': FieldValue.delete(), // อาจจะลบ reports field ด้วย หรือเก็บไว้? ปกติยอมรับแล้วก็ควรเคลียร์
+        'report_accept': true,
+        'deck_status': 'unverified', // เปลี่ยนสถานะเป็น unverified
+        'accept_timestamp': FieldValue.serverTimestamp(),
+      });
+      
+      print('🔍 DEBUG: Report accepted successfully!');
+      return true;
+    } catch (e) {
+      print('❌ ERROR accepting report: $e');
       return false;
     }
   }

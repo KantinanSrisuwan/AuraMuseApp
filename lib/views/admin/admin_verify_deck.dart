@@ -115,11 +115,24 @@ class _AdminVerifyDeckPageState extends State<AdminVerifyDeckPage> {
                 if (mounted && success) {
                   Navigator.of(context)..pop()..pop();
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('ยืนยันการอนุญาตสำรับเสร็จสิ้น'))
+                    const SnackBar(content: Text('ยืนยันการอนุญาตสำรับเสร็จสิ้น'), backgroundColor: Colors.green)
                   );
                 }
               } else {
-                Navigator.of(context)..pop()..pop();
+                final reason = reasonController.text.trim();
+                if (reason.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('กรุณาระบุเหตุผลที่ปฏิเสธ'), backgroundColor: Colors.orange)
+                  );
+                  return;
+                }
+                final success = await FirestoreService.rejectDeckVerification(_deckId, reason);
+                if (mounted && success) {
+                  Navigator.of(context)..pop()..pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('ปฏิเสธสำรับเรียบร้อยแล้ว'), backgroundColor: Colors.redAccent)
+                  );
+                }
               }
             })),
             const SizedBox(width: 10),

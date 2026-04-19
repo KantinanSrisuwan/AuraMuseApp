@@ -64,6 +64,9 @@ class _AdminReportDetailPageState extends State<AdminReportDetailPage> {
           'createdAt': deck.createdAt.toString(),
           'reportsList': reportsList,
           'description': reportsDescription,
+          'deckStatus': deck.deckStatus,
+          'viewCount': deck.viewCount,
+          'drawCount': deck.drawCount,
         };
       }
       return {
@@ -184,7 +187,7 @@ class _AdminReportDetailPageState extends State<AdminReportDetailPage> {
         left: 20, 
         right: 20,
         child: Row(children: [
-          Expanded(child: _btn("ลบสำรับทิ้ง", Colors.grey, () {})),
+          Expanded(child: _btn("ยอมรับการรายงาน", Colors.grey, () {})),
           const SizedBox(width: 15),
           Expanded(child: _btn("ปฏิเสธการรายงาน", Colors.grey, () {})),
         ]),
@@ -196,8 +199,8 @@ class _AdminReportDetailPageState extends State<AdminReportDetailPage> {
       left: 20, 
       right: 20,
       child: Row(children: [
-        Expanded(child: _btn("ลบสำรับทิ้ง", Colors.redAccent, () {
-          _showDeleteDialog(context, deckId);
+        Expanded(child: _btn("ยอมรับการรายงาน", Colors.redAccent, () {
+          _showAcceptDialog(context, deckId);
         })),
         const SizedBox(width: 15),
         Expanded(child: _btn("ปฏิเสธการรายงาน", const Color(0xFF455A64), () {
@@ -211,15 +214,15 @@ class _AdminReportDetailPageState extends State<AdminReportDetailPage> {
     style: ElevatedButton.styleFrom(backgroundColor: c, padding: const EdgeInsets.symmetric(vertical: 18), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
     onPressed: f, child: Text(t, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)));
 
-  void _showDeleteDialog(BuildContext context, String deckId) {
-    print('🔍 DEBUG: _showDeleteDialog called with deckId: $deckId');
+  void _showAcceptDialog(BuildContext context, String deckId) {
+    print('🔍 DEBUG: _showAcceptDialog called with deckId: $deckId');
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A2E),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15), side: const BorderSide(color: Colors.orangeAccent, width: 2)),
-        title: const Text("คำเตือน!!", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        content: const Text("การลบข้อมูลนี้เป็นการลบข้อมูลของสำรับถาวร ยืนยันที่จะลบหรือไม่", style: TextStyle(color: Colors.white70)),
+        title: const Text("ยืนยัน", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        content: const Text("ต้องการยอมรับการรายงานนี้หรือไม่? (สำรับนี้จะถูกซ่อนจากผู้ใช้ทั้งหมด)", style: TextStyle(color: Colors.white70)),
         actions: [
           Row(children: [
             Expanded(
@@ -227,16 +230,16 @@ class _AdminReportDetailPageState extends State<AdminReportDetailPage> {
                 "ยืนยัน",
                 Colors.redAccent,
                 () async {
-                  print('🔍 DEBUG: Delete button pressed, deckId: $deckId');
+                  print('🔍 DEBUG: Accept report button pressed, deckId: $deckId');
                   print('🔍 DEBUG: mounted before async: $mounted');
                   
                   // ล้าง keyboard ก่อนปิด dialog
                   FocusScope.of(context).unfocus();
                   
-                  // เรียก Firestore service ลบ deck
-                  final success = await FirestoreService.deleteDeck(deckId);
+                  // เรียก Firestore service ยอมรับ report
+                  final success = await FirestoreService.acceptDeckReport(deckId);
                   
-                  print('🔍 DEBUG: FirestoreService.deleteDeck returned: $success');
+                  print('🔍 DEBUG: FirestoreService.acceptDeckReport returned: $success');
                   print('🔍 DEBUG: mounted after async: $mounted');
 
                   if (!mounted) return;
@@ -250,13 +253,13 @@ class _AdminReportDetailPageState extends State<AdminReportDetailPage> {
                     // แสดง SnackBar
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('ลบสำรับสำเร็จ')),
+                        const SnackBar(content: Text('ยอมรับการรายงานสำเร็จ')),
                       );
                     }
                   } else {
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('เกิดข้อผิดพลาดในการลบสำรับ')),
+                        const SnackBar(content: Text('เกิดข้อผิดพลาดในการยอมรับการรายงาน')),
                       );
                     }
                   }
@@ -446,7 +449,27 @@ class ReportInfoPart extends StatelessWidget {
                           const SizedBox(height: 5),
                           Text("จำนวน: ${args['cardCount']} ใบ", style: const TextStyle(color: Colors.white70, fontSize: 12)),
                           const SizedBox(height: 15),
-                          const Text("สถานะ : เผยแพร่", style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 16)),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                              const Text("สถานะ : ", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white)),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: args['deckStatus'] == 'verified' ? Colors.green : Colors.orange,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  args['deckStatus'] == 'verified' ? '✓ Verified' : '⊙ Unverified',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ],
                       ),
                     ),
@@ -476,7 +499,96 @@ class ReportInfoPart extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 40),
-                  const Center(child: CircleAvatar(radius: 65, backgroundColor: Colors.orangeAccent)),
+                  const Text("สถิติการเข้าชมและสุ่มไพ่", style: TextStyle(color: Colors.white60, fontSize: 16)),
+                  const SizedBox(height: 25),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      // จำนวนการเข้าชม
+                      Column(
+                        children: [
+                          Container(
+                            width: 120,
+                            height: 120,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.cyan, width: 3),
+                              color: Colors.cyan.withOpacity(0.1),
+                            ),
+                            child: Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    '${args['viewCount'] ?? 0}',
+                                    style: const TextStyle(
+                                      color: Colors.cyan,
+                                      fontSize: 28,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const Text(
+                                    'เข้าชม',
+                                    style: TextStyle(
+                                      color: Colors.cyan,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          const Text(
+                            'จำนวนการเข้าชม',
+                            style: TextStyle(color: Colors.white70, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                      
+                      // จำนวนการสุ่ม
+                      Column(
+                        children: [
+                          Container(
+                            width: 120,
+                            height: 120,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.lime, width: 3),
+                              color: Colors.lime.withOpacity(0.1),
+                            ),
+                            child: Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    '${args['drawCount'] ?? 0}',
+                                    style: const TextStyle(
+                                      color: Colors.lime,
+                                      fontSize: 28,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const Text(
+                                    'ครั้ง',
+                                    style: TextStyle(
+                                      color: Colors.lime,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          const Text(
+                            'จำนวนการสุ่ม',
+                            style: TextStyle(color: Colors.white70, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 60),
                   const Text("ไถขึ้นเพื่อสลับไปไฟล์รายการไพ่ ↑", style: TextStyle(color: Colors.white24, fontSize: 12)),
                   const SizedBox(height: 250),

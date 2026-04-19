@@ -113,7 +113,11 @@ class _AdminVerifiedState extends State<AdminVerified> {
             'deckName': deckName,
             'dateCreated': dateCreated,
           },
-        );
+        ).then((_) {
+          if (mounted) {
+            setState(() {});
+          }
+        });
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 15),

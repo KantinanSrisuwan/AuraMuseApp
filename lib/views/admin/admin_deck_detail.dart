@@ -49,7 +49,7 @@ class _AdminDeckDetailPageState extends State<AdminDeckDetailPage> {
             ? _buildDeckDetailWithFetch(args, isPublic, deckStatus)
             : _buildDeckDetail(args, isPublic, deckStatus),
           // ปุ่ม Action ลอยคงที่ (เฉพาะของหน้า Deck)
-          _buildBottomButtons(context),
+          _buildBottomButtons(context, args['deckId'] ?? ''),
         ],
       ),
     );
@@ -102,10 +102,10 @@ class _AdminDeckDetailPageState extends State<AdminDeckDetailPage> {
   }
 
   // --- ส่วนปุ่มกดยันยืนการลบ (ดีไซน์เดิมของหน้า Deck) ---
-  Widget _buildBottomButtons(BuildContext context) => Positioned(
+  Widget _buildBottomButtons(BuildContext context, String deckId) => Positioned(
     bottom: 30, left: 20, right: 20,
     child: Row(children: [
-      Expanded(child: _actionButton("ลบสำรับทิ้ง", Colors.redAccent, () => _showDeleteDialog(context))),
+      Expanded(child: _actionButton("ลบสำรับทิ้ง", Colors.redAccent, () => _showDeleteDialog(context, deckId))),
     ]),
   );
 
@@ -119,10 +119,10 @@ class _AdminDeckDetailPageState extends State<AdminDeckDetailPage> {
     child: Text(text, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
   );
 
-  void _showDeleteDialog(BuildContext context) {
+  void _showDeleteDialog(BuildContext parentContext, String deckId) {
     showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
+      context: parentContext,
+      builder: (dialogContext) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A2E),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15), side: const BorderSide(color: Colors.orangeAccent, width: 2)),
         title: const Text("คำเตือน!!", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
@@ -131,17 +131,14 @@ class _AdminDeckDetailPageState extends State<AdminDeckDetailPage> {
           Row(children: [
             Expanded(
               child: _actionButton("ยืนยัน", Colors.redAccent, () async {
-                final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
-                String deckId = args['deckId'] ?? '';
-                
                 // ลบ deck จาก Firebase
                 bool success = await FirestoreService.deleteDeck(deckId);
                 
-                Navigator.of(context).pop(); // ปิด dialog
+                Navigator.of(dialogContext).pop(); // ปิด dialog
                 if (success) {
-                  Navigator.of(context).pop(); // กลับไปหน้าก่อนหน้า
+                  Navigator.of(parentContext).pop(); // กลับไปหน้าก่อนหน้า
                 } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  ScaffoldMessenger.of(parentContext).showSnackBar(
                     const SnackBar(
                       content: Text('ไม่สามารถลบสำรับได้'),
                       backgroundColor: Colors.redAccent,
@@ -151,7 +148,7 @@ class _AdminDeckDetailPageState extends State<AdminDeckDetailPage> {
               }),
             ),
             const SizedBox(width: 10),
-            Expanded(child: _actionButton("ยกเลิก", const Color(0xFF455A64), () => Navigator.pop(context))),
+            Expanded(child: _actionButton("ยกเลิก", const Color(0xFF455A64), () => Navigator.pop(dialogContext))),
           ]),
         ],
         actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),

@@ -105,7 +105,11 @@ class _AdminReportState extends State<AdminReport> {
           arguments: {
             'deckId': deckId,
           },
-        );
+        ).then((_) {
+          if (mounted) {
+            setState(() {});
+          }
+        });
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 15),
