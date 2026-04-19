@@ -11,6 +11,9 @@ import 'package:project_flutter/views/my_deck/my_deck_page.dart';
 import 'package:project_flutter/views/create/edit_deck_page.dart';
 import 'package:project_flutter/views/create/manage_deck_page.dart';
 import 'package:project_flutter/views/create/add_card_page.dart';
+import 'package:project_flutter/views/account/edit_profile_page.dart';
+import 'package:project_flutter/views/account/notifications_page.dart';
+import 'package:project_flutter/views/account/terms_page.dart';
 
 
 
@@ -27,6 +30,9 @@ class AppRoutes {
   static const String manageDeck = '/manage_deck';
   static const String editDeck = '/edit_deck';
   static const String addCard = '/add_card';
+  static const String editAccount = '/edit_account';
+  static const String notifications = '/notifications';
+  static const String terms = '/terms';
 
   static Map<String, WidgetBuilder> getRoutes() {
     return {
@@ -38,6 +44,9 @@ class AppRoutes {
       myDeck: (context) => const MyDeckPage(),
       manageDeck: (context) => const ManageDeckPage(),
       editDeck: (context) => const EditDeckPage(),
+      editAccount: (context) => const EditProfilePage(),
+      notifications: (context) => const NotificationsPage(),
+      terms: (context) => const TermsPage(),
     };
   }
 

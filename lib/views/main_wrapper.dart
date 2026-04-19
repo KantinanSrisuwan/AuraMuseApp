@@ -4,6 +4,7 @@ import 'search/search_page.dart';
 import 'my_deck/my_deck_page.dart';
 import 'widgets/custom_navbar.dart';
 import 'package:project_flutter/views/create/manage_deck_page.dart';
+import 'package:project_flutter/views/account/account_page.dart';
 
 class MainWrapper extends StatefulWidget {
   const MainWrapper({super.key});
@@ -21,7 +22,7 @@ class _MainWrapperState extends State<MainWrapper> {
     const SearchPage(), // Index 1
     const ManageDeckPage(),
     const MyDeckPage(), // Index 3 (เปลี่ยนจาก Text เป็น MyDeckPage จริงๆ)
-    const Center(child: Text("Profile", style: TextStyle(color: Colors.white))),  // Index 4 (รอทำ)
+    const AccountPage(),  // Index 4
   ];
 
   @override
