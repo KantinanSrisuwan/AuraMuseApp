@@ -68,6 +68,7 @@ class _RegisterPageState extends State<RegisterPage> {
             'quick_draws': [
               'om37Qmkfs0hIwt1g0ySp',
             ], // รายการเด็คที่กดสายฟ้า (เริ่มต้นด้วยเด็คตัวอย่าง)
+            'my_decks': [], // รายการสำรับของฉัน (เริ่มต้นด้วยลิสต์ว่าง)
             'created_at': FieldValue.serverTimestamp(),
           });
 

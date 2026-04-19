@@ -67,7 +67,8 @@ class _MyDeckPageState extends State<MyDeckPage>
     ) async {
       if (!userDoc.exists) return [];
 
-      final myDeckIds = List<String>.from(userDoc['my_decks'] ?? []);
+      final userData = userDoc.data() as Map<String, dynamic>?;
+      final myDeckIds = List<String>.from(userData?['my_decks'] ?? []);
       if (myDeckIds.isEmpty) return [];
 
       List<DocumentSnapshot> decks = [];
@@ -101,7 +102,8 @@ class _MyDeckPageState extends State<MyDeckPage>
     ) async {
       if (!userDoc.exists) return [];
 
-      final favoriteIds = List<String>.from(userDoc['favorites'] ?? []);
+      final userData = userDoc.data() as Map<String, dynamic>?;
+      final favoriteIds = List<String>.from(userData?['favorites'] ?? []);
       if (favoriteIds.isEmpty) return [];
 
       List<DocumentSnapshot> decks = [];
@@ -135,7 +137,8 @@ class _MyDeckPageState extends State<MyDeckPage>
     ) async {
       if (!userDoc.exists) return [];
 
-      final quickDrawIds = List<String>.from(userDoc['quick_draws'] ?? []);
+      final userData = userDoc.data() as Map<String, dynamic>?;
+      final quickDrawIds = List<String>.from(userData?['quick_draws'] ?? []);
       if (quickDrawIds.isEmpty) return [];
 
       List<DocumentSnapshot> decks = [];
@@ -181,7 +184,10 @@ class _MyDeckPageState extends State<MyDeckPage>
                 ),
                 labelColor: AppColors.cosmicCyan,
                 unselectedLabelColor: Colors.white54,
-                labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                labelStyle: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
                 tabs: const [
                   Tab(text: "My Decks"),
                   Tab(text: "Favorites"),
@@ -253,61 +259,64 @@ class _MyDeckPageState extends State<MyDeckPage>
 
             return GestureDetector(
               onTap: () {
-                Navigator.pushNamed(
-                  context,
-                  '/deck_detail',
-                  arguments: deck,
-                );
+                Navigator.pushNamed(context, '/deck_detail', arguments: deck);
               },
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.3),
-                      blurRadius: 10,
-                      offset: const Offset(0, 5),
-                    )
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: coverImage.isNotEmpty
-                      ? Image.network(
-                          coverImage,
-                          fit: BoxFit.cover,
-                          key: ValueKey(coverImage),
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              color: AppColors.glassBorder,
-                              child: const Icon(
-                                Icons.broken_image,
-                                color: Colors.white24,
-                              ),
-                            );
-                          },
-                          loadingBuilder: (context, child, loadingProgress) {
-                            if (loadingProgress == null) return child;
-                            return Container(
-                              color: AppColors.glassBorder,
-                              child: Center(
-                                child: CircularProgressIndicator(
-                                  color: AppColors.cosmicCyan.withOpacity(0.5)
-                                )
-                              ),
-                            );
-                          },
-                        )
-                      : Container(
-                          color: AppColors.glassBorder,
-                          child: const Icon(
-                            Icons.style,
-                            color: Colors.white24,
-                            size: 40,
-                          ),
+              child:
+                  Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.3),
+                              blurRadius: 10,
+                              offset: const Offset(0, 5),
+                            ),
+                          ],
                         ),
-                ),
-              ).animate().fadeIn(delay: Duration(milliseconds: 50 * index)).scale(curve: Curves.easeOutQuart),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: coverImage.isNotEmpty
+                              ? Image.network(
+                                  coverImage,
+                                  fit: BoxFit.cover,
+                                  key: ValueKey(coverImage),
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      color: AppColors.glassBorder,
+                                      child: const Icon(
+                                        Icons.broken_image,
+                                        color: Colors.white24,
+                                      ),
+                                    );
+                                  },
+                                  loadingBuilder:
+                                      (context, child, loadingProgress) {
+                                        if (loadingProgress == null)
+                                          return child;
+                                        return Container(
+                                          color: AppColors.glassBorder,
+                                          child: Center(
+                                            child: CircularProgressIndicator(
+                                              color: AppColors.cosmicCyan
+                                                  .withOpacity(0.5),
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                )
+                              : Container(
+                                  color: AppColors.glassBorder,
+                                  child: const Icon(
+                                    Icons.style,
+                                    color: Colors.white24,
+                                    size: 40,
+                                  ),
+                                ),
+                        ),
+                      )
+                      .animate()
+                      .fadeIn(delay: Duration(milliseconds: 50 * index))
+                      .scale(curve: Curves.easeOutQuart),
             );
           },
         );
@@ -331,15 +340,29 @@ class _MyDeckPageState extends State<MyDeckPage>
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.cosmicCyan.withOpacity(0.5), width: 1.5, style: BorderStyle.solid),
+          border: Border.all(
+            color: AppColors.cosmicCyan.withOpacity(0.5),
+            width: 1.5,
+            style: BorderStyle.solid,
+          ),
           color: AppColors.cosmicCyan.withOpacity(0.1),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.add_circle_outline, color: AppColors.cosmicCyan, size: 36),
+            Icon(
+              Icons.add_circle_outline,
+              color: AppColors.cosmicCyan,
+              size: 36,
+            ),
             const SizedBox(height: 8),
-            Text("Create", style: TextStyle(color: AppColors.cosmicCyan, fontWeight: FontWeight.bold))
+            Text(
+              "Create",
+              style: TextStyle(
+                color: AppColors.cosmicCyan,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ],
         ),
       ).animate().fadeIn().scale(curve: Curves.easeOutQuart),

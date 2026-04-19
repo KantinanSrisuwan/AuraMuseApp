@@ -30,7 +30,8 @@ class _ManageDeckPageState extends State<ManageDeckPage> {
     ) async {
       if (!userDoc.exists) return [];
 
-      final myDeckIds = List<String>.from(userDoc['my_decks'] ?? []);
+      final userData = userDoc.data() as Map<String, dynamic>?;
+      final myDeckIds = List<String>.from(userData?['my_decks'] ?? []);
       if (myDeckIds.isEmpty) return [];
 
       // ดึง deck documents ทั้งหมด
