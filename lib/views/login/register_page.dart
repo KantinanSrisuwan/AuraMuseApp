@@ -132,8 +132,7 @@ class _RegisterPageState extends State<RegisterPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.backgroundNavy,
-      // ปุ่มย้อนกลับ (Back Button)
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -172,43 +171,54 @@ class _RegisterPageState extends State<RegisterPage> {
               isPassword: true,
               controller: _confirmPasswordController,
             ),
-            const SizedBox(height: 60),
-            // ปุ่มลงทะเบียน
-            SizedBox(
-              width: 250,
-              height: 55,
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : _handleRegister,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.actionGreen,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 24,
-                        width: 24,
-                        child: CircularProgressIndicator(
-                          valueColor:
-                              AlwaysStoppedAnimation<Color>(Colors.white),
-                          strokeWidth: 2,
+                  const SizedBox(height: 40),
+                  // ปุ่มลงทะเบียน
+                  Container(
+                    width: double.infinity,
+                    height: 55,
+                    decoration: BoxDecoration(
+                      gradient: AppColors.primaryActionGradient,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.cosmicCyan.withOpacity(0.4),
+                          blurRadius: 15,
+                          offset: const Offset(0, 4),
                         ),
-                      )
-                    : const Text(
-                        "ลงทะเบียน",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
+                      ],
+                    ),
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _handleRegister,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: CircularProgressIndicator(
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Text(
+                              "ลงทะเบียน",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                letterSpacing: 1,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 20),
-          ],
-        ),
-      ),
     );
   }
 }

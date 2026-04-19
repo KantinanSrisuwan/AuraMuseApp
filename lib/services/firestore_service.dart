@@ -367,9 +367,18 @@ class FirestoreService {
     }
   }
 
-  // ลบ User
+  // ลบ User และสำรับทั้งหมดของ User
   static Future<bool> deleteUser(String uid) async {
     try {
+      // 1. ดึงสำรับทั้งหมดที่ user คนนี้สร้าง
+      final userDecksSnapshot = await _db.collection('decks').where('creator_id', isEqualTo: uid).get();
+      
+      // 2. ลบสำรับทั้งหมด (deleteDeck จะลบการ์ดข้างในด้วย)
+      for (var doc in userDecksSnapshot.docs) {
+        await deleteDeck(doc.id);
+      }
+
+      // 3. ลบ User
       await _db.collection('users').doc(uid).delete();
       return true;
     } catch (e) {

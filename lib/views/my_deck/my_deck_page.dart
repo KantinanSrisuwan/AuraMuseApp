@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/constants/app_colors.dart';
-import '../search/deck_view_wrapper.dart';
+import '../create/edit_deck_page.dart';
 
 class MyDeckPage extends StatefulWidget {
   const MyDeckPage({super.key});
@@ -9,126 +12,337 @@ class MyDeckPage extends StatefulWidget {
   State<MyDeckPage> createState() => _MyDeckPageState();
 }
 
-class _MyDeckPageState extends State<MyDeckPage> {
-  // Mock ข้อมูลแยกตามหมวดหมู่
-  final List<Map<String, String>> _myCreatedDecks = [
-    {'name': 'สำรับที่ฉันสร้าง 1', 'image': 'https://picsum.photos/seed/m1/200/300'},
-    {'name': 'สำรับที่ฉันสร้าง 2', 'image': 'https://picsum.photos/seed/m2/200/300'},
-  ];
-
-  final List<Map<String, String>> _favoriteDecks = [
-    {'name': 'สำรับโปรด 1', 'image': 'https://picsum.photos/seed/f1/200/300'},
-  ];
+class _MyDeckPageState extends State<MyDeckPage>
+    with WidgetsBindingObserver, TickerProviderStateMixin {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  late TabController _tabController;
+  DateTime? _lastRefreshTime;
 
   @override
-Widget build(BuildContext context) {
-  return DefaultTabController(
-    length: 3,
-    child: Scaffold(
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _tabController = TabController(length: 3, vsync: this);
+    _tabController.addListener(_onTabChange);
+  }
+
+  void _onTabChange() {
+    if (mounted) {
+      setState(() {
+        _lastRefreshTime = DateTime.now();
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      if (mounted) {
+        print('MyDeckPage: App resumed - forcing refresh');
+        setState(() {
+          _lastRefreshTime = DateTime.now();
+        });
+      }
+    }
+  }
+
+  // Stream function สำหรับ my_decks (listen real-time)
+  Stream<List<DocumentSnapshot>> _getMyDecksStream() async* {
+    final user = _auth.currentUser;
+    if (user == null) {
+      yield [];
+      return;
+    }
+
+    yield* _firestore.collection('users').doc(user.uid).snapshots().asyncMap((
+      userDoc,
+    ) async {
+      if (!userDoc.exists) return [];
+
+      final myDeckIds = List<String>.from(userDoc['my_decks'] ?? []);
+      if (myDeckIds.isEmpty) return [];
+
+      List<DocumentSnapshot> decks = [];
+      for (String deckId in myDeckIds) {
+        try {
+          final deckDoc = await _firestore
+              .collection('decks')
+              .doc(deckId)
+              .get();
+          if (deckDoc.exists) {
+            decks.add(deckDoc);
+          }
+        } catch (e) {
+          print('Error fetching my_deck: $e');
+        }
+      }
+      return decks;
+    });
+  }
+
+  // Stream function สำหรับ favorites (listen real-time)
+  Stream<List<DocumentSnapshot>> _getFavoritesStream() async* {
+    final user = _auth.currentUser;
+    if (user == null) {
+      yield [];
+      return;
+    }
+
+    yield* _firestore.collection('users').doc(user.uid).snapshots().asyncMap((
+      userDoc,
+    ) async {
+      if (!userDoc.exists) return [];
+
+      final favoriteIds = List<String>.from(userDoc['favorites'] ?? []);
+      if (favoriteIds.isEmpty) return [];
+
+      List<DocumentSnapshot> decks = [];
+      for (String deckId in favoriteIds) {
+        try {
+          final deckDoc = await _firestore
+              .collection('decks')
+              .doc(deckId)
+              .get();
+          if (deckDoc.exists) {
+            decks.add(deckDoc);
+          }
+        } catch (e) {
+          print('Error fetching favorite: $e');
+        }
+      }
+      return decks;
+    });
+  }
+
+  // Stream function สำหรับ quick_draws (listen real-time)
+  Stream<List<DocumentSnapshot>> _getQuickDrawsStream() async* {
+    final user = _auth.currentUser;
+    if (user == null) {
+      yield [];
+      return;
+    }
+
+    yield* _firestore.collection('users').doc(user.uid).snapshots().asyncMap((
+      userDoc,
+    ) async {
+      if (!userDoc.exists) return [];
+
+      final quickDrawIds = List<String>.from(userDoc['quick_draws'] ?? []);
+      if (quickDrawIds.isEmpty) return [];
+
+      List<DocumentSnapshot> decks = [];
+      for (String deckId in quickDrawIds) {
+        try {
+          final deckDoc = await _firestore
+              .collection('decks')
+              .doc(deckId)
+              .get();
+          if (deckDoc.exists) {
+            decks.add(deckDoc);
+          }
+        } catch (e) {
+          print('Error fetching quick_draw: $e');
+        }
+      }
+      return decks;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
       backgroundColor: AppColors.backgroundNavy,
-      // 1. เอา AppBar ออกไปเลย
-      body: SafeArea( 
+      body: SafeArea(
         child: Column(
           children: [
-            // 2. ส่วนของ TabBar ที่ย้ายมาไว้ใน Column แทนเพื่อให้ติดขอบบน
-            const TabBar(
-              isScrollable: false,
-              indicatorSize: TabBarIndicatorSize.label,
-              indicatorColor: Colors.amber,
-              labelColor: Colors.white,
-              unselectedLabelColor: Colors.white38,
-              // ลบ padding ส่วนเกินออก
-              padding: EdgeInsets.zero,
-              labelPadding: EdgeInsets.zero,
-              tabs: [
-                Tab(text: "สำรับของฉัน"),
-                Tab(text: "รายการโปรดของสำรับ"),
-                Tab(text: "ควิกดรอว์"),
-              ],
-            ),
-            
-            // 3. ส่วนแสดงเนื้อหาของแต่ละ Tab
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.glassBorder,
+                borderRadius: BorderRadius.circular(25),
+              ),
+              child: TabBar(
+                controller: _tabController,
+                isScrollable: false,
+                indicatorSize: TabBarIndicatorSize.tab,
+                dividerColor: Colors.transparent,
+                indicator: BoxDecoration(
+                  borderRadius: BorderRadius.circular(25),
+                  color: AppColors.cosmicCyan.withOpacity(0.2),
+                  border: Border.all(color: AppColors.cosmicCyan, width: 1),
+                ),
+                labelColor: AppColors.cosmicCyan,
+                unselectedLabelColor: Colors.white54,
+                labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                tabs: const [
+                  Tab(text: "My Decks"),
+                  Tab(text: "Favorites"),
+                  Tab(text: "Quick Draw"),
+                ],
+              ),
+            ).animate().fadeIn(duration: 500.ms).slideY(begin: -0.2),
+
             Expanded(
               child: TabBarView(
+                controller: _tabController,
                 children: [
-                  _buildDeckGrid(_myCreatedDecks, showAddButton: true),
-                  _buildDeckGrid(_favoriteDecks),
-                  _buildDeckGrid([]),
+                  _buildDeckGridWithStream(
+                    _getMyDecksStream(),
+                    showAddButton: true,
+                  ),
+                  _buildDeckGridWithStream(_getFavoritesStream()),
+                  _buildDeckGridWithStream(_getQuickDrawsStream()),
                 ],
               ),
             ),
           ],
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
-  // ฟังก์ชันสร้าง Grid แสดงผล Deck (เหมือนหน้า Search)
-  Widget _buildDeckGrid(List<Map<String, String>> decks, {bool showAddButton = false}) {
-    return GridView.builder(
-      padding: const EdgeInsets.all(20),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: 15,
-        mainAxisSpacing: 15,
-        childAspectRatio: 0.65,
-      ),
-      // ถ้าเป็นหน้า "สำรับของฉัน" ให้เพิ่มจำนวนไอเทมไปอีก 1 เพื่อวางปุ่ม +
-      itemCount: showAddButton ? decks.length + 1 : decks.length,
-      itemBuilder: (context, index) {
-        // กรณีปุ่มเพิ่มสำรับใหม่ (+)
-        if (showAddButton && index == decks.length) {
-          return _buildAddButton();
+  Widget _buildDeckGridWithStream(
+    Stream<List<DocumentSnapshot>> stream, {
+    bool showAddButton = false,
+  }) {
+    return StreamBuilder<List<DocumentSnapshot>>(
+      stream: stream,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: CircularProgressIndicator(color: Colors.amber),
+          );
         }
 
-        final deck = decks[index];
-        return GestureDetector(
-          onTap: () {
-            // ใช้ PageRouteBuilder ที่เราเพิ่งทำ เพื่อให้การวาร์ปไปหน้า Detail นุ่มนวล
-            Navigator.push(
-              context,
-              PageRouteBuilder(
-                pageBuilder: (context, anim, secAnim) => const DeckViewWrapper(),
-                settings: RouteSettings(arguments: deck),
-                transitionsBuilder: (context, anim, secAnim, child) {
-                  return FadeTransition(opacity: anim, child: child);
-                },
-              ),
+        final decks = snapshot.data ?? [];
+
+        if (decks.isEmpty && !showAddButton) {
+          return const Center(
+            child: Text(
+              'ไม่มีสำรับไพ่',
+              style: TextStyle(color: Colors.white70, fontSize: 16),
+            ),
+          );
+        }
+
+        return GridView.builder(
+          padding: const EdgeInsets.all(20),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            crossAxisSpacing: 15,
+            mainAxisSpacing: 15,
+            childAspectRatio: 0.65,
+          ),
+          itemCount: showAddButton ? decks.length + 1 : decks.length,
+          itemBuilder: (context, index) {
+            if (showAddButton && index == decks.length) {
+              return _buildAddButton();
+            }
+
+            final deck = decks[index];
+            final coverImage = deck['cover_image'] ?? '';
+            final deckId = deck.id;
+
+            return GestureDetector(
+              onTap: () {
+                Navigator.pushNamed(
+                  context,
+                  '/deck_detail',
+                  arguments: deck,
+                );
+              },
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.3),
+                      blurRadius: 10,
+                      offset: const Offset(0, 5),
+                    )
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: coverImage.isNotEmpty
+                      ? Image.network(
+                          coverImage,
+                          fit: BoxFit.cover,
+                          key: ValueKey(coverImage),
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              color: AppColors.glassBorder,
+                              child: const Icon(
+                                Icons.broken_image,
+                                color: Colors.white24,
+                              ),
+                            );
+                          },
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Container(
+                              color: AppColors.glassBorder,
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  color: AppColors.cosmicCyan.withOpacity(0.5)
+                                )
+                              ),
+                            );
+                          },
+                        )
+                      : Container(
+                          color: AppColors.glassBorder,
+                          child: const Icon(
+                            Icons.style,
+                            color: Colors.white24,
+                            size: 40,
+                          ),
+                        ),
+                ),
+              ).animate().fadeIn(delay: Duration(milliseconds: 50 * index)).scale(curve: Curves.easeOutQuart),
             );
           },
-          child: Hero(
-            tag: 'deck_hero_${deck['name']}',
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: Image.network(deck['image']!, fit: BoxFit.cover ,errorBuilder: (context, error, stackTrace) {
-          return Container(
-      color: Colors.white10,
-      child: const Icon(Icons.broken_image, color: Colors.white24),
-    );
-  },loadingBuilder: (context, child, loadingProgress) {
-    if (loadingProgress == null) return child;
-    return Container(color: Colors.white.withOpacity(0.05));
-  },
-        ),
-            ),
-          ),
         );
       },
     );
   }
 
-  // ปุ่มสร้างสำรับใหม่ (+)
   Widget _buildAddButton() {
     return GestureDetector(
-      onTap: () => print("ไปหน้าสร้างสำรับใหม่"),
+      onTap: () async {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const EditDeckPage()),
+        );
+        if (mounted) {
+          setState(() {
+            _lastRefreshTime = DateTime.now();
+          });
+        }
+      },
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.white24, width: 1.5),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.cosmicCyan.withOpacity(0.5), width: 1.5, style: BorderStyle.solid),
+          color: AppColors.cosmicCyan.withOpacity(0.1),
         ),
-        child: const Icon(Icons.add, color: Colors.white38, size: 40),
-      ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.add_circle_outline, color: AppColors.cosmicCyan, size: 36),
+            const SizedBox(height: 8),
+            Text("Create", style: TextStyle(color: AppColors.cosmicCyan, fontWeight: FontWeight.bold))
+          ],
+        ),
+      ).animate().fadeIn().scale(curve: Curves.easeOutQuart),
     );
   }
 }

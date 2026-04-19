@@ -64,8 +64,8 @@ class _AdminDeckState extends State<AdminDeck> {
 
                 final decks = snapshot.data ?? [];
                 
-                // กรองเอาเฉพาะสำรับที่ไม่ได้ถูก reject และไม่ได้ถูกยอมรับการรายงาน (แบน) ออกมาแสดง
-                final displayDecks = decks.where((deck) => deck.deckStatus != 'reject' && !deck.reportAccept).toList();
+                // กรองเอาเฉพาะสำรับที่ไม่ได้ถูก reject ออกมาแสดง (สำรับที่ถูกแบนยังคงแสดงอยู่)
+                final displayDecks = decks.where((deck) => deck.deckStatus != 'reject').toList();
 
                 if (displayDecks.isEmpty) {
                   return const Center(
@@ -157,14 +157,14 @@ class _AdminDeckState extends State<AdminDeck> {
                 children: [
                   Text(
                     "หมายเลขเด็ค : $deckId   จำนวนการ์ด : $cardCount ใบ",
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87),
                   ),
                   const SizedBox(height: 8),
                   Row(
                     children: [
                       const Text(
                         "สถานะ : ",
-                        style: TextStyle(fontSize: 13),
+                        style: TextStyle(fontSize: 13, color: Colors.black87),
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -184,7 +184,7 @@ class _AdminDeckState extends State<AdminDeck> {
                     ],
                   ),
                   const SizedBox(height: 10),
-                  Text("ชื่อสำรับ : $deckName", style: const TextStyle(fontSize: 15)),
+                  Text("ชื่อสำรับ : $deckName", style: const TextStyle(fontSize: 15, color: Colors.black87)),
                   const SizedBox(height: 5),
                   Text(
                     "วันที่สร้าง : $dateCreated",

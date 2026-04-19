@@ -35,19 +35,43 @@ class _AdminVerifyDeckPageState extends State<AdminVerifyDeckPage> {
 
     return Scaffold(
       backgroundColor: const Color(0xFF13112B),
-      body: Stack(
-        children: [
-          PageView(
-            controller: _pageController,
-            scrollDirection: Axis.vertical,
-            physics: const BouncingScrollPhysics(),
+      body: FutureBuilder<DeckModel?>(
+        future: FirestoreService.getDeckById(_deckId),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator(color: Colors.white));
+          }
+
+          Map<String, dynamic> mergedArgs = Map.from(args);
+          if (snapshot.hasData && snapshot.data != null) {
+            final deck = snapshot.data!;
+            mergedArgs = {
+              ...args,
+              'deckName': deck.deckName,
+              'cardCount': deck.cardCount,
+              'creatorUsername': deck.creatorUsername,
+              'viewCount': deck.viewCount,
+              'drawCount': deck.drawCount,
+              'deckStatus': deck.deckStatus,
+              'coverImage': deck.coverImage,
+            };
+          }
+
+          return Stack(
             children: [
-              VerifyInfoPart(args: args, onNext: () => _jumpToPage(1)),
-              VerifyGridPart(args: args, onBack: () => _jumpToPage(0)),
+              PageView(
+                controller: _pageController,
+                scrollDirection: Axis.vertical,
+                physics: const BouncingScrollPhysics(),
+                children: [
+                  VerifyInfoPart(args: mergedArgs, onNext: () => _jumpToPage(1)),
+                  VerifyGridPart(args: mergedArgs, onBack: () => _jumpToPage(0)),
+                ],
+              ),
+              _buildBottomButtons(context),
             ],
-          ),
-          _buildBottomButtons(context),
-        ],
+          );
+        },
       ),
     );
   }
@@ -201,9 +225,30 @@ class _VerifyInfoPartState extends State<VerifyInfoPart> {
                         decoration: BoxDecoration(
                           color: const Color(0xFF4A3AFF), 
                           borderRadius: BorderRadius.circular(15), 
-                          border: Border.all(color: Colors.blueAccent.withOpacity(0.5))
+                          border: Border.all(color: Colors.blueAccent.withOpacity(0.5), width: 2),
+                          boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 15, offset: Offset(0, 8))],
                         ), 
-                        child: const Icon(Icons.style, size: 90, color: Colors.white24)
+                        child: (widget.args['coverImage'] as String?)?.isNotEmpty == true
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(13),
+                              child: Image.network(
+                                widget.args['coverImage'],
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) => const Icon(Icons.style, size: 90, color: Colors.white24),
+                                loadingBuilder: (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return Center(
+                                    child: CircularProgressIndicator(
+                                      value: loadingProgress.expectedTotalBytes != null
+                                          ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                          : null,
+                                      color: Colors.blueAccent,
+                                    ),
+                                  );
+                                },
+                              ),
+                            )
+                          : const Icon(Icons.style, size: 90, color: Colors.white24),
                       ),
                       const SizedBox(width: 20),
                       Expanded(
@@ -215,22 +260,23 @@ class _VerifyInfoPartState extends State<VerifyInfoPart> {
                             _infoRow("จำนวนการ์ด", "${widget.args['cardCount']} ใบ"),
                             _infoRow("ผู้สร้าง", widget.args['creatorUsername'] ?? "ไม่ระบุ"),
                             const SizedBox(height: 15),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text("สถานะเด็ค :", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white)),
+                                const Text("สถานะเด็ค :", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white)),
+                                const SizedBox(height: 8),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                   decoration: BoxDecoration(
                                     color: (widget.args['deckStatus'] ?? 'unverified') == 'verified' ? Colors.green : Colors.orange,
-                                    borderRadius: BorderRadius.circular(8),
+                                    borderRadius: BorderRadius.circular(6),
                                   ),
                                   child: Text(
                                     (widget.args['deckStatus'] ?? 'unverified') == 'verified' ? '✓ Verified' : '⊙ Unverified',
                                     style: const TextStyle(
                                       color: Colors.white,
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 14,
+                                      fontSize: 12,
                                     ),
                                   ),
                                 ),

@@ -115,7 +115,11 @@ class _AdminUserState extends State<AdminUser> {
             'dateCreated': dateCreated,
             'email': email,
           },
-        );
+        ).then((_) {
+          if (mounted) {
+            setState(() {});
+          }
+        });
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 15),
@@ -149,12 +153,12 @@ class _AdminUserState extends State<AdminUser> {
                   const SizedBox(height: 5),
                   Text(
                     "หมายเลข user : $userId",
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black87),
                   ),
                   const SizedBox(height: 10),
                   Text(
                     "Username : $username",
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Colors.black87),
                   ),
                   const SizedBox(height: 10),
                   Text(

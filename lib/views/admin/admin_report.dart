@@ -148,12 +148,12 @@ class _AdminReportState extends State<AdminReport> {
                 children: [
                   Text(
                     deckName,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 8),
-                  Text("สร้างโดย : $creatorUsername", style: const TextStyle(fontSize: 13)),
+                  Text("สร้างโดย : $creatorUsername", style: const TextStyle(fontSize: 13, color: Colors.black87)),
                   const SizedBox(height: 4),
                   Text(
                     "หมายเลขเด็ค : $deckId",

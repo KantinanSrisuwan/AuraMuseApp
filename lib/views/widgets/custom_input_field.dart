@@ -27,18 +27,23 @@ class CustomInputField extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         TextField(
-          controller: controller, // ✅ เชื่อมต่อ Controller เข้ากับช่องพิมพ์
+          controller: controller,
           obscureText: isPassword,
-          style: const TextStyle(color: Colors.black), // เพิ่มให้สีตัวอักษรที่พิมพ์เป็นสีขาวด้วยครับ
+          style: const TextStyle(color: Colors.white), 
+          cursorColor: AppColors.cosmicCyan,
           decoration: InputDecoration(
             filled: true,
-            fillColor: AppColors.inputBackground,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(4),
-              borderSide: BorderSide.none,
+            fillColor: AppColors.glassBorder, // Translucent background
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Colors.transparent),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.cosmicCyan, width: 2),
             ),
             contentPadding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           ),
         ),
       ],

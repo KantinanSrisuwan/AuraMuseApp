@@ -86,10 +86,10 @@ class _AdminUserDetailPageState extends State<AdminUserDetailPage> {
   Widget _buildProfileHeader(String userId, String username, String email) {
     return Row(
       children: [
-        CircleAvatar(
+        const CircleAvatar(
           radius: 65, 
           backgroundColor: Colors.deepPurple, 
-          backgroundImage: NetworkImage("https://picsum.photos/seed/$userId/200")
+          child: Icon(Icons.person, size: 80, color: Colors.white),
         ),
         const SizedBox(width: 20),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -169,7 +169,11 @@ class _AdminUserDetailPageState extends State<AdminUserDetailPage> {
             'viewCount': deck.viewCount,
             'drawCount': deck.drawCount,
           }
-        );
+        ).then((_) {
+          if (mounted) {
+            setState(() {});
+          }
+        });
       },
       child: Container(
         width: 120, margin: const EdgeInsets.only(right: 15, top: 10),

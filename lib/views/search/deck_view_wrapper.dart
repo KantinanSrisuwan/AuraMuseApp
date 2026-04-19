@@ -15,19 +15,19 @@ class _DeckViewWrapperState extends State<DeckViewWrapper> {
 
   @override
   Widget build(BuildContext context) {
-    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    // ดึง deckData จาก route arguments - รองรับทั้ง DocumentSnapshot และ QueryDocumentSnapshot
+    final deckData = ModalRoute.of(context)?.settings.arguments as dynamic;
 
     return Scaffold(
-      backgroundColor: Colors.black, // พื้นหลังดำสนิทเพื่อให้รอยต่อดูเนียน
+      backgroundColor: Colors.black,
       resizeToAvoidBottomInset: false,
       body: PageView(
         controller: _pageController,
         scrollDirection: Axis.vertical,
-        // *** หัวใจสำคัญ: ทำให้ดีดล็อคหน้าแบบ TikTok ***
-        physics: const PageScrollPhysics(parent: BouncingScrollPhysics()), 
+        physics: const PageScrollPhysics(parent: BouncingScrollPhysics()),
         children: [
-          DeckDetailPage(deckData: args),
-          DeckListPage(deckData: args),
+          DeckDetailPage(deckData: deckData),
+          DeckListPage(deckData: deckData),
         ],
       ),
     );

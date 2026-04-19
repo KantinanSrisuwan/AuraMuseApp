@@ -75,6 +75,7 @@ class _AdminDeckDetailPageState extends State<AdminDeckDetailPage> {
             'viewCount': deck.viewCount,
             'drawCount': deck.drawCount,
             'deckStatus': deck.deckStatus,
+            'coverImage': deck.coverImage,
           };
           return _buildDeckDetail(mergedArgs, isPublic, deckStatus);
         }
@@ -211,8 +212,40 @@ class DeckInfoPart extends StatelessWidget {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // รูปปกสำรับ
-                      Container(width: 160, height: 250, decoration: BoxDecoration(color: const Color(0xFF4A3AFF), borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.blueAccent.withOpacity(0.5))), child: const Icon(Icons.style, size: 90, color: Colors.white24)),
+                      // รูปปกจริง
+                      Container(
+                        width: 160,
+                        height: 250,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF4A3AFF),
+                          borderRadius: BorderRadius.circular(15),
+                          border: Border.all(color: Colors.blueAccent.withOpacity(0.5), width: 2),
+                          boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 15, offset: Offset(0, 8))],
+                        ),
+                        child: (args['coverImage'] as String?)?.isNotEmpty == true
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(13),
+                                child: Image.network(
+                                  args['coverImage'],
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return const Icon(Icons.style, size: 90, color: Colors.white24);
+                                  },
+                                  loadingBuilder: (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
+                                    return Center(
+                                      child: CircularProgressIndicator(
+                                        value: loadingProgress.expectedTotalBytes != null
+                                            ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                            : null,
+                                        color: Colors.blueAccent,
+                                      ),
+                                    );
+                                  },
+                                ),
+                              )
+                            : const Icon(Icons.style, size: 90, color: Colors.white24),
+                      ),
                       const SizedBox(width: 20),
                       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         const SizedBox(height: 20),
@@ -220,22 +253,23 @@ class DeckInfoPart extends StatelessWidget {
                         _infoRow("จำนวนการ์ด", "${args['cardCount']} ใบ"),
                         _infoRow("ผู้สร้าง", args['creatorUsername'] ?? "ไม่ระบุ"),
                         const SizedBox(height: 15),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text("สถานะเด็ค :", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white)),
+                            const Text("สถานะเด็ค :", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white)),
+                            const SizedBox(height: 8),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                               decoration: BoxDecoration(
                                 color: deckStatus == 'verified' ? Colors.green : Colors.orange,
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
                                 deckStatus == 'verified' ? '✓ Verified' : '⊙ Unverified',
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 14,
+                                  fontSize: 12,
                                 ),
                               ),
                             ),

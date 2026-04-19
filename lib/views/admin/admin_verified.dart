@@ -149,10 +149,10 @@ class _AdminVerifiedState extends State<AdminVerified> {
                 children: [
                   Text(
                     "หมายเลขเด็ค : $deckId   จำนวนการ์ดในสำรับ : $cardCount ใบ",
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87),
                   ),
                   const SizedBox(height: 10),
-                  Text("ชื่อสำรับ : $deckName", style: const TextStyle(fontSize: 15)),
+                  Text("ชื่อสำรับ : $deckName", style: const TextStyle(fontSize: 15, color: Colors.black87)),
                   const SizedBox(height: 5),
                   Text(
                     "วันที่สร้าง : $dateCreated",
