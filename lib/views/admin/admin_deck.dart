@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/admin_drawer.dart';
 import '../../core/routes/admin_routes.dart';
+import '../../services/firestore_service.dart';
 
 class AdminDeck extends StatefulWidget {
   const AdminDeck({super.key});
@@ -43,21 +44,53 @@ class _AdminDeckState extends State<AdminDeck> {
           ),
           const SizedBox(height: 20),
           Expanded(
-            child: ListView(
-              children: [
-                _buildDeckItem(
-                  deckId: "1082",
-                  cardCount: "7",
-                  deckName: "บทกวีแห่งพงไพร",
-                  dateCreated: "08/03/2026",
-                ),
-                _buildDeckItem(
-                  deckId: "1083",
-                  cardCount: "15",
-                  deckName: "บทนำสู่ความรุ่งโรจน์",
-                  dateCreated: "06/03/2026",
-                ),
-              ],
+            child: StreamBuilder<List<DeckModel>>(
+              stream: FirestoreService.getDecksStream(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(color: Colors.white),
+                  );
+                }
+
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Text(
+                      'เกิดข้อผิดพลาด: ${snapshot.error}',
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  );
+                }
+
+                final decks = snapshot.data ?? [];
+                
+                // กรองเอาเฉพาะสำรับที่ไม่ได้ถูก reject ออกมาแสดง (สำรับที่ถูกแบนยังคงแสดงอยู่)
+                final displayDecks = decks.where((deck) => deck.deckStatus != 'reject').toList();
+
+                if (displayDecks.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      'ไม่มีสำรับในระบบ',
+                      style: TextStyle(color: Colors.white70, fontSize: 16),
+                    ),
+                  );
+                }
+
+                return ListView.builder(
+                  itemCount: displayDecks.length,
+                  itemBuilder: (context, index) {
+                    final deck = displayDecks[index];
+                    return _buildDeckItem(
+                      deckId: deck.id,
+                      cardCount: deck.cardCount.toString(),
+                      deckName: deck.deckName,
+                      deckStatus: deck.deckStatus,
+                      dateCreated:
+                          '${deck.createdAt.day}/${deck.createdAt.month}/${deck.createdAt.year}',
+                    );
+                  },
+                );
+              },
             ),
           ),
         ],
@@ -70,6 +103,7 @@ class _AdminDeckState extends State<AdminDeck> {
     required String deckId,
     required String cardCount,
     required String deckName,
+    required String deckStatus,
     required String dateCreated,
   }) {
     return InkWell( // 1. ครอบด้วย InkWell เพื่อให้กดได้และมีเอฟเฟกต์ Ripple
@@ -83,9 +117,15 @@ class _AdminDeckState extends State<AdminDeck> {
             'deckId': deckId,
             'deckName': deckName,
             'cardCount': cardCount,
+            'deckStatus': deckStatus,
             // ... ข้อมูลอื่นๆ
           },
-        );
+        ).then((_) {
+          // รีเฟรชหน้าจอเมื่อกลับมาจากหน้า detail
+          if (mounted) {
+            setState(() {});
+          }
+        });
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 15),
@@ -117,10 +157,34 @@ class _AdminDeckState extends State<AdminDeck> {
                 children: [
                   Text(
                     "หมายเลขเด็ค : $deckId   จำนวนการ์ด : $cardCount ใบ",
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Text(
+                        "สถานะ : ",
+                        style: TextStyle(fontSize: 13, color: Colors.black87),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: deckStatus == 'verified' ? Colors.green : Colors.orange,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          deckStatus == 'verified' ? '✓ Verified' : '⊙ Unverified',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 10),
-                  Text("ชื่อสำรับ : $deckName", style: const TextStyle(fontSize: 15)),
+                  Text("ชื่อสำรับ : $deckName", style: const TextStyle(fontSize: 15, color: Colors.black87)),
                   const SizedBox(height: 5),
                   Text(
                     "วันที่สร้าง : $dateCreated",

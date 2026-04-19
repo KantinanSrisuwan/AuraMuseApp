@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/admin_drawer.dart';
 import '../../core/routes/admin_routes.dart';
+import '../../services/firestore_service.dart';
 
 class AdminUser extends StatefulWidget {
   const AdminUser({super.key});
@@ -43,20 +44,52 @@ class _AdminUserState extends State<AdminUser> {
           ),
           const SizedBox(height: 20),
           Expanded(
-            child: ListView(
-              children: [
-                _buildUserItem(
-                  userId: "1082",
-                  username: "ราชาคนุษยัยามดึก",
-                  dateCreated: "08/03/2026",
-                ),
-                _buildUserItem(
-                  userId: "1083",
-                  username: "แมค โดนัล",
-                  dateCreated: "06/03/2026",
-                ),
-                // สามารถเพิ่ม User อื่นๆ ตรงนี้
-              ],
+            child: FutureBuilder(
+              future: FirestoreService.getAllUsers(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(color: Colors.white),
+                  );
+                }
+
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Text(
+                      'เกิดข้อผิดพลาด: ${snapshot.error}',
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  );
+                }
+
+                final users = snapshot.data ?? [];
+
+                if (users.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      'ไม่มีบัญชีผู้ใช้ในระบบ',
+                      style: TextStyle(color: Colors.white70, fontSize: 16),
+                    ),
+                  );
+                }
+
+                return ListView.builder(
+                  itemCount: users.length,
+                  itemBuilder: (context, index) {
+                    final user = users[index];
+                    final createdAt = user['created_at'] != null
+                        ? user['created_at'].toDate()
+                        : DateTime.now();
+                    return _buildUserItem(
+                      userId: user['uid'] ?? '',
+                      username: user['username'] ?? 'ไม่ระบุ',
+                      dateCreated:
+                          '${createdAt.day}/${createdAt.month}/${createdAt.year}',
+                      email: user['email'] ?? '',
+                    );
+                  },
+                );
+              },
             ),
           ),
         ],
@@ -69,6 +102,7 @@ class _AdminUserState extends State<AdminUser> {
     required String userId,
     required String username,
     required String dateCreated,
+    required String email,
   }) {
     return InkWell(
       onTap: () {
@@ -79,8 +113,13 @@ class _AdminUserState extends State<AdminUser> {
             'userId': userId,
             'username': username,
             'dateCreated': dateCreated,
+            'email': email,
           },
-        );
+        ).then((_) {
+          if (mounted) {
+            setState(() {});
+          }
+        });
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 15),
@@ -114,12 +153,12 @@ class _AdminUserState extends State<AdminUser> {
                   const SizedBox(height: 5),
                   Text(
                     "หมายเลข user : $userId",
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black87),
                   ),
                   const SizedBox(height: 10),
                   Text(
                     "Username : $username",
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Colors.black87),
                   ),
                   const SizedBox(height: 10),
                   Text(

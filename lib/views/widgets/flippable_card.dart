@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
+import '../../core/constants/app_colors.dart';
 
 class FlippableCard extends StatefulWidget {
   final Widget front;
@@ -75,9 +76,17 @@ class _FlippableCardState extends State<FlippableCard> with SingleTickerProvider
       width: widget.width,
       height: widget.height,
       decoration: BoxDecoration(
-        color: const Color(0xFF2E3580),
+        color: AppColors.glassBorder.withOpacity(0.15),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.amber.withOpacity(0.5), width: 1.5),
+        border: Border.all(color: AppColors.cosmicCyan.withOpacity(0.2), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.cosmicPurple.withOpacity(0.2),
+            blurRadius: 30,
+            spreadRadius: 2,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
       child: Stack(
         alignment: Alignment.center,
@@ -89,7 +98,7 @@ class _FlippableCardState extends State<FlippableCard> with SingleTickerProvider
               child: Text(
                 widget.backText,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.white, fontSize: 18, height: 1.5),
+                style: const TextStyle(color: Colors.white, fontSize: 18, height: 1.5, fontWeight: FontWeight.w500),
               ),
             ),
           ),
@@ -108,13 +117,13 @@ class _FlippableCardState extends State<FlippableCard> with SingleTickerProvider
 
   Widget _buildColorDot(Color color) {
     return Container(
-      width: 35, height: 35,
+      width: 25, height: 25,
       margin: const EdgeInsets.symmetric(horizontal: 6),
       decoration: BoxDecoration(
         color: color,
         shape: BoxShape.circle,
-        border: Border.all(color: Colors.white54, width: 1),
-        boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4, offset: const Offset(0, 2))],
+        border: Border.all(color: Colors.white24, width: 1),
+        boxShadow: [BoxShadow(color: color.withOpacity(0.5), blurRadius: 10, offset: const Offset(0, 2))],
       ),
     );
   }
